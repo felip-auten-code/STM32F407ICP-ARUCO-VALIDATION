@@ -5,15 +5,21 @@ import time
 import os
 import numpy as np
 
-board = cv2.aruco.CharucoBoard((3, 3), 1, 0.8, cv2.aruco.DICT_6X6_250)
+#board = cv2.aruco.CharucoBoard((3,3)  1, 0.8, dictionary=cv2.aruco.DICT_6X6_250)
+aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+dict = cv2.aruco.DICT_6X6_250
+board = cv2.aruco.CharucoBoard((3,3) , 1, 0.8, aruco_dict)
+
+#board = cv2.aruco.GridBoard((3,3), 1, 0.8, dict)
+
 imgs_folder = "./data/imgs/"
 
-def wait_(time):
-    time.sleep(time*0.3)
+def wait_(tim):
+    time.sleep(tim*0.3)
     print(".")
-    time.sleep(time*0.3)
+    time.sleep(tim*0.3)
     print(".")
-    time.sleep(time*0.3)
+    time.sleep(tim*0.3)
     print(".")
 
 def calibrate_camera(allCorners,allIds,imsize):
@@ -47,7 +53,7 @@ def calibrate_camera(allCorners,allIds,imsize):
 
 def read_chessboard(imgs):
     print("CHARUCO POSE ESTIMATION STARTING")
-    wait_(2.5)
+    wait_(1)
     allCorners = []
     allIDS = []
     decimator = 0
@@ -55,8 +61,8 @@ def read_chessboard(imgs):
     for i in imgs:
         print("=> Processing image {0}".format(i))
         frame = cv2.imread(i)
-        gray = cv2.ctvColor(frame,cv2.COLOR_BGR2GRAY)
-        res = cv2.aruco.detectMarkers(gray, cv2.aruco.DICT_6X6_250 )
+        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        res = cv2.aruco.detectMarkers(gray, aruco_dict )
 
         if(len(res[0]) > 0):
             res2 = cv2.aruco.interpolateCornersCharuco(res[0], res[1], gray, board)
