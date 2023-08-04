@@ -1,0 +1,2 @@
+# STM32F407ICP-ARUCO-VALIDATION
+Implementation of the ICP (Iterative Closest Point) Algorithm in a low cost microprocessor. And validation of the localization by ArUCO Markers using the OpenCV library in python.
