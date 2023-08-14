@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import algebra as alg
-from IPython.display import display
+
 
 VIDFolder = "./data/"
 VIDFile = "./data/Experiment01VIDaruco.mp4"
@@ -163,6 +163,8 @@ while capture.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if(key == ord('q')):
         break
+    if(key == ord('p')):
+        cv2.waitKey(-1)     #wait until any key is pressed
 capture.release()
 cv2.destroyAllWindows()
 
