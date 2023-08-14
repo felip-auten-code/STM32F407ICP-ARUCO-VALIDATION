@@ -1,0 +1,13 @@
+    \begin{bmatrix}
+        \cos{\theta^{O}_{R}} \cos{\psi^{O}_{R}} & 
+        \sin{\phi^{O}_{R}} \sin{\theta^{O}_{R}}  \cos{\psi^{O}_{R}} - \cos{\phi^{O}_{R}} \sin{\psi^{O}_{R}}  & 
+        \cos{\phi^{O}_{R}} \sin{\theta^{O}_{R}} \cos{\psi^{O}_{R}} + \sin{\phi^{O}_{R}} \sin{\psi^{O}_{R}}   \\
+        
+        \cos{\theta^{O}_{R}} \sin{\psi^{O}_{R}}  &
+        \sin{\phi^{O}_{R}} \sin{\theta^{O}_{R}} \sin{\psi^{O}_{R}}  + \cos{\phi^{O}_{R}}\cos{\psi^{O}_{R}} &
+        \cos{\phi^{O}_{R}}\sin{\theta^{O}_{R}} \sin{\psi^{O}_{R}}  - \sin{\phi^{O}_{R}} \cos{\psi^{O}_{R}} \\
+        
+        -\sin{\theta^{O}_{R}}  &
+        \sin{\phi^{O}_{R}} \cos{\theta^{O}_{R}} &
+        \cos{\phi^{O}_{R}} \cos{\theta^{O}_{R}}
+    \end{bmatrix}
