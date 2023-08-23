@@ -1,8 +1,13 @@
 import serial
-import keyboard
+import os
 import time
+import cv2
 
-ser = serial.Serial(port="COM8", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 0.2)
+
+
+
+ # Alwas edit witch COM PORT IS BEEING USED BY THE TTL(UART/USB) Converter
+ser = serial.Serial(port="COM9", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 0.2)
 
 data_send =[]
 
@@ -23,7 +28,8 @@ for i in data_send:
     print(i)
     ser.write(i.encode("Ascii"))
     if(ctt % 2 == 0):
-        time.sleep(60)
+        print("Press any key to send the 2 sequential Scans")
+        input("Press Enter to continue")    #wait until any key is pressed
     ctt+=1
 
 
