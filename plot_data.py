@@ -27,10 +27,10 @@ with open('./data/scanVID001.txt', mode='r') as f:
                 num += str(i)
             elif( str(i) == ',' ):
                 #print(num)
-                if(ctt_line == 1):
+                if(ctt_line == 37):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 131):
+                elif(ctt_line == 40):
                     scan_end[idx_scan_end] = float(num)
                     idx_scan_end+=1                
                 num=""

@@ -2,35 +2,57 @@ import serial
 import os
 import time
 import cv2
-
+import io
 
 
 
  # Alwas edit witch COM PORT IS BEEING USED BY THE TTL(UART/USB) Converter
-ser = serial.Serial(port="COM9", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 0.2)
+ser = serial.Serial(port="COM4", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 100)
+#sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
 
 data_send =[]
 
-with open('./data/scan002.txt', mode = 'r') as f:
+with open('./data/scanVID001.txt', mode = 'r') as f:
     ctt=0
     for line in f:
         if(line[0] == '/'):
             break
-        if(ctt % 10 == 0  ):
+        #if(ctt % 10 == 0  ):
             #ser.write(line.encode("Ascii"))
             #print(line)
-            data_send.append(line)
+            #data_send.append(line)
             #time.sleep(10)
             #print("open")
+        data_send.append(line)
         ctt+=1
-ctt=1
-for i in data_send:
-    print(i)
-    ser.write(i.encode("Ascii"))
-    if(ctt % 2 == 0):
+
+
+list1 = [val for val in data_send for _ in (0, 1)]
+
+ctt=0
+#input("Press enter to start")
+for i in list1[1:]:
+    if(ctt % 2 == 0 ):
         print("Press any key to send the 2 sequential Scans")
         input("Press Enter to continue")    #wait until any key is pressed
+        
+    ser.write(i.encode("Ascii"))
+    print(i)
+            
     ctt+=1
+    
+    if(ctt%2==0):
+        wait_till_return = 1
+        #input('wait till processed by MICRO')
+        print('wait till processed by MICRO')
+        current_line = ""
+        current_line = ser.readline()
+        #print(current_line)
+        with open('./data/STM_ICP_DATA.txt', mode = 'a') as f:
+            f.write(current_line.decode("Ascii"))
+            print(current_line.decode("Ascii"))
+            f.close()
+
 
 
 ser.close()

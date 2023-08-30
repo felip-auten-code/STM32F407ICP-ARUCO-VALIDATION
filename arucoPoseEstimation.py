@@ -181,6 +181,7 @@ print(RvecsTable)
 
 
 TvecsTable.to_csv("./data/TvecsARUCO.csv")
+RvecsTable.to_csv("./data/RvecsARUCO.csv")
 
 fig1 = plt.figure(figsize = (7,7))
 
