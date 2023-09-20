@@ -7,7 +7,7 @@ import io
 
 
  # Alwas edit witch COM PORT IS BEEING USED BY THE TTL(UART/USB) Converter
-ser = serial.Serial(port="COM4", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 100)
+ser = serial.Serial(port="COM6", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 100)
 #sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
 
 data_send =[]
