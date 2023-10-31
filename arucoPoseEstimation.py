@@ -9,15 +9,18 @@ import algebra as alg
 
 
 VIDFolder = "./data/"
+
+# PATH do arquivo do video
 VIDFile = "./data/Experiment01VIDaruco.mp4"
-
+# Captura do OpenCV
 capture = cv2.VideoCapture(VIDFile)
+# DICIONÁRIO ARUCO
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-
+# MATRIZ de ajuste da câmera (foco da lente?)
 mtx = np.array([[2.068268675143158816e+03, 0.000000000000000000e+00, 9.864133721217920083e+02],
                 [0.000000000000000000e+00, 2.162385610454082780e+03, 5.558514673165518616e+02],
                 [0.000000000000000000e+00, 0.000000000000000000e+00, 1.000000000000000000e+00]])
-
+# ?
 dist = np.array([[-4.344115590524044168e-01],
                  [5.946729271049551180e-01],
                  [2.404662846493914666e-02],
@@ -33,6 +36,10 @@ dist = np.array([[-4.344115590524044168e-01],
                  [0.000000000000000000e+00],
                  [0.000000000000000000e+00]])
 
+f_tvec = []                 # primeira translacao
+f_rvec = []                 # primeira rotaçao
+
+# FUNCAO ESTIMACAO DE POSE ARUCO 
 def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficients, frameID):
 
     '''
@@ -51,12 +58,16 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
     rvecs = []
     markers = []
     
+
+    
     x_coords = []
     y_coords = []
 
     corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict,parameters=parameters )
 
-        # If markers are detected
+    
+    c_count=frameID-800
+    # If markers are detected
     if len(corners) > 0:
         for i in range(0, len(ids)):
             # Estimate pose of each marker and return the values rvec and tvec         ---     (different from those of camera coefficients)
@@ -71,39 +82,83 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
            #tvecs.append([ids[i], frameID])
            # [ MarkerID            Tx          Ty          Tz              FrameID]
            
-            tvecs.extend([ids[i][0] , tvec_list[i][0][2] , tvec_list[i][0][1] , tvec_list[i][0][0] ,  frameID])             # flipped
-            rvecs.extend([ids[i][0] , rvec_list[i][0][2] , rvec_list[i][0][1] , rvec_list[i][0][0] ,  frameID])             # flipped
+           # tvecs.extend([ids[i][0] , tvec_list[i][0][2] , tvec_list[i][0][1] , tvec_list[i][0][0] ,  frameID])          
+           # rvecs.extend([ids[i][0] , rvec_list[i][0][2] , rvec_list[i][0][1] , rvec_list[i][0][0] ,  frameID])            
             
             
+            x_coords = 0
+            y_coords = 0
             #print(tvecs)
             t = tvec_list[0][0]
             r = rvec_list[0][0]
             
-            t_ = t * -1                 # flip
-            r_ = r * -1                 # flip
+            ###### MY CODE ########################################################
             
+            if(frameID == 801):
+                #import pdb; pdb.set_trace()
+                f_tvec.append(t)
+                f_rvec.append(r)
             
-            rotM2, jacobian = cv2.Rodrigues(r_)                                         # rotation matrix with rvec angles
-            rotM = alg.RotationMatrixEuler(r[0], r[1], r[2])                            # my rotation bleh
+            #import pdb; pdb.set_trace()
+            if(frameID > 801):
+                
+                #import pdb; pdb.set_trace()
+                
+                t_masked =  t - f_tvec[0]                           #  MASCARA TRASLACAO
+                #import pdb; pdb.set_trace() 
+                r_masked =  r + f_rvec[0]                           #  MASK  ROT
+                #import pdb; pdb.set_trace()
+                #ROT_r, jac = cv2.Rodrigues(r)
+                #f_rvec = np.array(f_rvec)
+                #import pdb; pdb.set_trace()
+                #ROT_first, jac = cv2.Rodrigues(f_rvec[0])
             
-            real_O_tvec = np.dot(rotM, t_)
-            real_O_tvec2 = np.dot(rotM2, t_)
-            pitch, roll, yaw = alg.rotationMatrixToEulerAngles(rotM2)
-            print(yaw, pitch, roll)
+                #ROT_masked = ROT_r - ROT_first
+                
+                TrueROT, jacobian = cv2.Rodrigues(r_masked)
+
+                #import pdb; pdb.set_trace()
             
-            tvec_str = "x = %4.0f  y = %4.0f  z = %4.0f "%(real_O_tvec[0], real_O_tvec[1], real_O_tvec[2])
-            tvec_str2 = "yaw = %4.0f"%( m.degrees(yaw))
+                t_ = t * -1                 # flip 
+                r_ = r * -1                 # flip
             
-            cv2.putText(frame, tvec_str, (5,100), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, cv2.LINE_AA)
-            cv2.putText(frame, tvec_str2, (15,200), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, cv2.LINE_AA)
-            #cv2.line(frame, (int(real_O_tvec[0]), int(real_O_tvec[1])), (int(t[0]), int(t[1])), (0,0,255), 170)
+                # [Tx, Ty, Tz] + [dx, dy, dy]
+                # [Rx(i), Ry(i), Rz(i)]   [Rx(i+1), Ry(i+1), Rz(i+1)]
             
-            xg = t[0]
-            yg = t[1]
+                rotM2, jacobian = cv2.Rodrigues(r_)                                         # rotation matrix with rvec angles
+                # IMPROVE
+                rotM = alg.RotationMatrixEuler(-1*r[0], -1*r[1], -1*r[2])                            # my rotation bleh
+                O_T_VEC = np.dot(rotM, t_) 
+
             
-            x_coords.append(xg)
-            y_coords.append(yg)
+                real_O_tvec = np.dot(rotM, t_)
+                real_O_tvec2 = np.dot(rotM2, t_)
             
+                REAL_vec = np.dot(TrueROT, np.reshape(t_masked, (3,1)))
+                pitch, roll, yaw = alg.rotationMatrixToEulerAngles(TrueROT)
+                Rx, Ry, Rz = alg.rotationMatrixToEulerAngles(TrueROT)
+                #pitch, roll, yaw = alg.rotationMatrixToEulerAngles(rotM2)
+                print(yaw, pitch, roll)
+                #np.transpose(t_masked)
+                #np.resize(t_masked, (0,3))
+                #import pdb; pdb.set_trace()
+                tvec_str = "x = %4.0f  y = %4.0f  z = %4.0f "%(REAL_vec[0], REAL_vec[1], REAL_vec[2])
+                tvec_str2 = "yaw = %4.0f"%( m.degrees(Rz))+" pitch = %4.0f"%( m.degrees(Rx))+ " roll = %4.0f"%( m.degrees(Ry))
+            
+                cv2.putText(frame, tvec_str, (5,100), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, cv2.LINE_AA)
+                cv2.putText(frame, tvec_str2, (15,200), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, cv2.LINE_AA)
+                #cv2.line(frame, (int(real_O_tvec2[0])*10, int(real_O_tvec2[1])*10), (int(t[0]), int(t[1])), (0,0,255), 70)
+                
+                tvecs.extend([ids[i][0] , REAL_vec[0], REAL_vec[1], REAL_vec[2] ,  frameID])          
+                rvecs.extend([ids[i][0] , Rx , Ry , Rz ,  frameID])      
+            
+                xg = REAL_vec[0][0]
+                yg = REAL_vec[1][0]
+            
+                x_coords = (xg)
+                y_coords = (yg)
+                #import pdb; pdb.set_trace()
+
             # Store translation vectors
         
         #TvecsTable = pd.DataFrame(data = tvecs)
@@ -139,17 +194,19 @@ while capture.isOpened():
     
     x_coords.append(x)
     y_coords.append(y)
-    tvecs.append(tvec)
-    rvecs.append(rvec)
-    corners.append([int(corner[0][0][1][1]), int(corner[0][0][1][0])])
+    tvecs.append(tvec)                  # Vetores de Translação 
+    rvecs.append(rvec)                  # Vetores de Rotação
+    corners.append([int(corner[0][0][1][1]), int(corner[0][0][1][0])])          # Vertices do marcador aruco
     #print(corner[0][0][1])
     
 
-    # dsize
+    # downsize
     scale_percent = 50
     width = int(outputFrame.shape[1] * scale_percent / 100)
     height = int(outputFrame.shape[0] * scale_percent / 100)
     dsize = (width, height)
+    
+    # DESENHA LINHA NA TELA
     cv2.line(outputFrame, (int(corner[0][0][2][0]), int(corner[0][0][2][1])), (int(corner[0][0][2][0]), int(corner[0][0][2][1])) , (0, 0, 255), 70)
     
     # resize image
@@ -192,6 +249,7 @@ fig2 = plt.figure(figsize=(7,7))
 print (corners, corners[1])
 ax2 = plt.plot(corners)
 fig3= plt.figure()
+#import pdb; pdb.set_trace()
 ax3 = plt.plot(x_coords, y_coords)
 plt.grid()
 plt.show()
