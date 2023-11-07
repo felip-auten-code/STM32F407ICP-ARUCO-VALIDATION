@@ -16,7 +16,7 @@ SCANS_TOTAL = np.zeros(360 * 135)
 COORDINATES_X = np.zeros( 360 )
 COORDINATES_Y = np.zeros( 360 )
 
-with open('./data/scanT86mmR28g.txt', mode='r') as f:
+with open('./data/scan002.txt', mode='r') as f:
     ctt_line=0
     for line in f: 
         idx_scan=0

@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include<windows.h> 
+#include <bits/stdc++.h>
 //#include "matplotlibcpp.h"
 //#define EIGEN_RUNTIME_NO_MALLOC 1
 
@@ -16,7 +17,7 @@
 #define CORRESPONDENCES_SIZE 120        /* 120 (int)*/ // -> 120 * 2 * (x, y)
 #define SCAN_SIZE 360                   /* 360 * 2 = 720 (double)*/
 const int TEST_DIMENSION =2;
-const int TEST_SIZE = 15;
+const int TEST_SIZE = 360;
 double PI = 3.1415;
 
 /*
@@ -502,7 +503,7 @@ Eigen::Matrix<double, Dynamic, 2> setLine(Eigen::Matrix<double, Dynamic, 2> sour
     */
     int ct=1;
     for (int i =0; i < source.rows() ; i++){
-
+        
         source(i,0) = i;
         source(i,1) = i;
         
@@ -528,6 +529,31 @@ Eigen::Matrix<double, Dynamic, 2> setCorner(Eigen::Matrix<double, Dynamic, 2> so
         }else{
             source(i,0) = i;
             source(i,1) = i;
+        }
+        //if (i % 13 ==0){
+        //    source(i,0) = 0;
+        //    source(i,1) = 0;
+        //}
+    }
+    return source;
+}
+
+Eigen::Matrix<double, Dynamic, 2> setCornerWnoise(Eigen::Matrix<double, Dynamic, 2> source){
+    /*
+           /\
+          /  \
+         /    \
+        /      \
+    */
+    int ct=1;
+    for (int i =0; i < source.rows() ; i++){
+        if(i> source.rows()/2){
+            source(i,0) = i + ((double)rand()) / RAND_MAX;
+            source(i,1) = source.rows() -i + ((double)rand()) / RAND_MAX;
+            ct++;
+        }else{
+            source(i,0) = i + ((double)rand()) / RAND_MAX;
+            source(i,1) = i + ((double)rand()) / RAND_MAX;
         }
         //if (i % 13 ==0){
         //    source(i,0) = 0;
@@ -573,14 +599,15 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
 	double ang;
 	//double coord[720];
 	Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> out;
+    double conversionToCentimeter = 0.1;
 
 
 	for ( int i=0 ; i< size_scan ; i++){
 		ang = i * PI * (0.005555);        // convertion to radians
 //		coordinates[i][0] =  scan_ranges[i] * cos(ang);
 //		coordinates[i][1] =  scan_ranges[i] * sin(ang);
-		out(i,0) = double(scan_ranges[i] * cos(ang));
-		out(i,1) = double(scan_ranges[i] * sin(ang));
+		out(i,0) = double(scan_ranges[i] * cos(ang))  * conversionToCentimeter;
+		out(i,1) = double(scan_ranges[i] * sin(ang))  * conversionToCentimeter;
         //std::cout << scan_ranges[i] << std::endl;
 	}
     //Sleep(10000);
@@ -590,25 +617,37 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
 
 const int num_of_samples = 100;
 
+Eigen::MatrixXd introduceError(Eigen::MatrixXd in, double size){
+    Eigen::MatrixXd out;
+    out.conservativeResize(in.rows(), 2);   
+    for (int i =0; i < in.rows(); i++){
+        out(i,0) = in(i,0) + size * (((double)rand()) / RAND_MAX);
+        out(i,1) = in(i,1) + size * (((double)rand()) / RAND_MAX);
+    }
 
-double** fileToSamplePoints2D(std::string path, int size, double** out){
+    return out;
+}
+
+double** fileToDistances(std::string path, int size, double** out){
     //Eigen::Matrix<double, num_of_samples, TEST_SIZE> out;
     std::string see, line;
     
-    std::ifstream sensor_file(path);
+    std::fstream sensor_file(path);
     int count_scan_idx=0;
-    while(count_scan_idx < 100 && std::getline(sensor_file, line) ){
+    std::cout  << path << std::endl;
+    while(sensor_file.is_open() &&  count_scan_idx < size && getline(sensor_file, line) ){
         int  count_dist_idx =0;
         for (int i =0; i < line.length(); i++){
-            //std::cout << i << std::endl;
+            //std::cout << see << std::endl;                                                                    // it gets here! numbers OK
             if(line[i] != '[' && line[i] != ' ' && line[i] != ',' && line[i] != ']'){
                 see += line[i];
 
             }else if(line[i] == ','){
-                out[count_scan_idx][count_dist_idx] = std::stod(see);
-                //std::cout  << out[count_scan_idx][count_dist_idx] << std::endl;
+                out[count_scan_idx][count_dist_idx] = stod(see);
+                //std::cout  << out[count_scan_idx][count_dist_idx] << std::endl;                               //
                 count_dist_idx +=1;
-                see = "";
+                //std::cout << stod(see) << std::endl;                                                          // it gets here! OK, 
+                see = "";                                                                                       // but always check size of vector
             }else if(line[i] == ']'){
                 count_scan_idx += 1;
                 count_dist_idx = 0;
@@ -647,7 +686,7 @@ int mainCPP(){
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> transformed_points;
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points;
     //source_points = Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION>::Random();
-    source_points = setCorner(source_points);
+    source_points = setCornerWnoise(source_points);
     Eigen::Matrix<double, 1, 3> transf, translation;                                              // palpite inicial
     Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;
     Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;
@@ -655,20 +694,23 @@ int mainCPP(){
     Eigen::Matrix<double, 3, 3> HOM;
     cumulative.setZero();
     transf.setZero();
-    true_transform << 1.05, 1.4, 0.284;
+    true_transform << .52, .45, 0.134;
     transformed_points = computeTransform(source_points, true_transform);
 
+    //std::cout << "target: \n"           << transformed_points << "\n";
+    //transformed_points = introduceError(transformed_points, 0.15);
+    //std::cout << "target(noise): \n"           << transformed_points << "\n";
 
     //transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
 
-    std::cout << "origin: \n" << source_points << "\n";
-    std::cout << "target: \n" << transformed_points << "\n";
+    //std::cout << "origin: \n" << source_points << "\n";
+    //std::cout << "target: \n" << transformed_points << "\n";
 
 
 
 
-    std::cout << "MASS org:\n" << CenterOfMass(source_points) << std::endl;
-    std::cout << "MASS tgt:\n" << CenterOfMass(transformed_points) << std::endl;
+    //std::cout << "MASS org:\n" << CenterOfMass(source_points) << std::endl;
+    //std::cout << "MASS tgt:\n" << CenterOfMass(transformed_points) << std::endl;
 
     
     // INITIAL GUESS
@@ -701,10 +743,10 @@ int mainCPP(){
         std::cout << "diff error: \t"                   <<  diff                    << "\t";
         std::cout << "Transformacao esperada: \t"       <<  true_transform          << "\t";
         std::cout << "Transformacao atual   : \t"       <<  icp_transform(0,0)      << " "  << icp_transform(0,1) << " " << cumulative(0,2) << "\n";
-        // if(err < 2e-15){
-        //     std::cout << "iteration (out): \t" <<  i << "\n";
-        //     break;
-        // }
+        if(err < 1e-15){
+            std::cout << "iteration (out): \t" <<  i << "\n";
+            break;
+        }
 
         //std::cout << "Transformation [i=" << i << "]:\t" << icp_transform << std::endl;
     }
@@ -719,18 +761,18 @@ int mainCPP(){
 
     final_transform.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(rot_points);
 
-    std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
-    std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
+    //std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
+    //std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
     std::cout << "Translation FINAL ICP:\n"             << final_transform                          << std::endl;
 
     rot_points = computeTransform(source_points, final_transform);
 
-    std::cout << "ROT AUX (2): \n"      << rot_points             << "\n";
+    //std::cout << "ROT AUX (2): \n"      << rot_points             << "\n";
 
-    std::cout << "origin: \n"           << source_points          << "\n";
-    std::cout << "target: \n"           << transformed_points     << "\n";
-    std::cout << "output: \n"           << updt_p                 << "\n";
-    // std::cout << "target: \n" << transformed_points << "\n";
+    //std::cout << "origin: \n"           << source_points          << "\n";
+    //std::cout << "target: \n"           << transformed_points     << "\n";
+    //std::cout << "output: \n"           << updt_p                 << "\n";
+    //std::cout << "target: \n"           << transformed_points << "\n";
     return 0;
 }
 
@@ -814,36 +856,40 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     return final_transform;
 }
 
+int size_samples = 200;
+double** f_scans= (double**)malloc(size_samples * sizeof(double*));
 
-double** f_scans= (double**)malloc(100 * sizeof(double*));
+
+int main(){
+    //int size_samples = 100;
+    //double** f_scans= (double**)malloc(100 * sizeof(double*));
+
+    for (int i =0; i< size_samples; i++){
+        f_scans[i] = (double*)malloc(TEST_SIZE * sizeof(double));
+    }
+
+    f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
+    print_vec(f_scans[45], TEST_SIZE);
+    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  org, tgt;
+    Eigen::Matrix<double, 1, 3> trans_steps;
+    ofstream outFile("./data/PC_ICP_output2.txt");
+    for (int i = 0; i < size_samples - 1; i++){
+        org << f_scan_i_ToEigenMatrix(f_scans[i], TEST_SIZE);
+        tgt << f_scan_i_ToEigenMatrix(f_scans[i+1], TEST_SIZE);
+        std::cout << tgt << std::endl;
+        //print_vec(f_scans[i], TEST_SIZE);
+        //std::cout << org << std::endl;
+        //Sleep(5000);
+        //std::cout << f_scans[i] << std::endl;
+        trans_steps = main_ICP(org, tgt);
+        std::cout << trans_steps << std::endl;
+        outFile << trans_steps << std::endl;
+    }
+    outFile.close();
+}
 
 
 // int main(){
-//     int size_samples = 100;
-//     //double** f_scans= (double**)malloc(100 * sizeof(double*));
-
-//     for (int i =0; i< 100; i++){
-//         f_scans[i] = (double*)malloc(TEST_SIZE * sizeof(double));
-//     }
-
-//     f_scans = fileToSamplePoints2D("./data/scan001", size_samples, f_scans);
-//     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  org, tgt;
-//     Eigen::Matrix<double, 1, 3> trans_steps;
-//     ofstream outFile("./data/PC_ICP_output2.txt");
-//     for (int i = 0; i < size_samples; i++){
-//         org << f_scan_i_ToEigenMatrix(f_scans[i], TEST_SIZE);
-//         tgt << f_scan_i_ToEigenMatrix(f_scans[i+1], TEST_SIZE);
-//         //std::cout << f_scans[i][150] << std::endl;
-//         //print_vec(f_scans[i], TEST_SIZE);
-//         //std::cout << org << std::endl;
-//         //Sleep(5000);
-//         //std::cout << f_scans[i] << std::endl;
-//         trans_steps = main_ICP(org, tgt);
-//         std::cout << trans_steps << std::endl;
-//         outFile << trans_steps << std::endl;
-//     }
+//     srand(time(0));
+//     mainCPP();
 // }
-//outFile.close();
-int main(){
-    mainCPP();
-}
