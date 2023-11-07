@@ -16,7 +16,7 @@ SCANS_TOTAL = np.zeros(360 * 135)
 COORDINATES_X = np.zeros( 360 )
 COORDINATES_Y = np.zeros( 360 )
 
-with open('./data/scan002.txt', mode='r') as f:
+with open('./data/scanLASTEST01.txt', mode='r') as f:
     ctt_line=0
     for line in f: 
         idx_scan=0
@@ -27,10 +27,10 @@ with open('./data/scan002.txt', mode='r') as f:
                 num += str(i)
             elif( str(i) == ',' ):
                 #print(num)
-                if(ctt_line == 111):
+                if(ctt_line == 85):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 51):
+                elif(ctt_line == 87):
                     scan_end[idx_scan_end] = float(num) 
                     idx_scan_end+=1                
                 num=""
@@ -40,7 +40,7 @@ with open('./data/scan002.txt', mode='r') as f:
 print(ctt_line)
 
 def convert_scan_to_cartesian(scan):
-    for i in range(0,359):
+    for i in range(0,360):
         rad = i * PI / 180
         COORDINATES_X[i] = scan[i] * m.cos(rad)
         COORDINATES_Y[i] = scan[i] * m.sin(rad) 
@@ -55,7 +55,7 @@ def show_down_sampling(scan, mode):
         n_y = np.zeros(72)
         ctt=0
         j=0
-        for i in range(0,359):
+        for i in range(0,360):
             if(ctt<5):
                 n_x[j]+= x[i]
                 n_y[j]+= y[i]
@@ -77,7 +77,7 @@ def show_down_sampling(scan, mode):
         n_y = np.zeros(120)
         ctt=1
         j=0
-        for i in range(0,359):
+        for i in range(0,360):
             if((i+1) % 3 == 0 ):
                 n_x[j]+= x[i]                                   # alter here to be compatible with stm32f4 implementation
                 n_y[j]+= y[i]

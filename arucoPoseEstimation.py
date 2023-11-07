@@ -11,7 +11,7 @@ import algebra as alg
 VIDFolder = "./data/"
 
 # PATH do arquivo do video
-VIDFile = "./data/Experiment01VIDaruco.mp4"
+VIDFile = "./data/Ltest01.mp4"
 # Captura do OpenCV
 capture = cv2.VideoCapture(VIDFile)
 # DICIONÁRIO ARUCO
@@ -94,13 +94,13 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
             
             ###### MY CODE ########################################################
             
-            if(frameID == 801):
+            if(frameID == startFRAME):
                 #import pdb; pdb.set_trace()
                 f_tvec.append(t)
                 f_rvec.append(r)
             
             #import pdb; pdb.set_trace()
-            if(frameID > 801):
+            if(frameID > startFRAME):
                 
                 #import pdb; pdb.set_trace()
                 
@@ -134,7 +134,7 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
                 real_O_tvec = np.dot(rotM, t_)
                 real_O_tvec2 = np.dot(rotM2, t_)
             
-                REAL_vec = np.dot(TrueROT, np.reshape(t_masked, (3,1)))
+                REAL_vec = np.reshape(t_masked, (3,1))
                 pitch, roll, yaw = alg.rotationMatrixToEulerAngles(TrueROT)
                 Rx, Ry, Rz = alg.rotationMatrixToEulerAngles(TrueROT)
                 #pitch, roll, yaw = alg.rotationMatrixToEulerAngles(rotM2)
@@ -180,7 +180,10 @@ rvecs = []
 x_coords = []
 y_coords = []
 
-capture.set(cv2.CAP_PROP_POS_FRAMES, 800)
+
+startFRAME = 1500
+endFRAME = 2300
+capture.set(cv2.CAP_PROP_POS_FRAMES, startFRAME)
 
 corners = []
 
@@ -196,7 +199,7 @@ while capture.isOpened():
     y_coords.append(y)
     tvecs.append(tvec)                  # Vetores de Translação 
     rvecs.append(rvec)                  # Vetores de Rotação
-    corners.append([int(corner[0][0][1][1]), int(corner[0][0][1][0])])          # Vertices do marcador aruco
+    #corners.append([int(corner[0][0][1][1]), int(corner[0][0][1][0])])          # Vertices do marcador aruco
     #print(corner[0][0][1])
     
 
@@ -207,14 +210,14 @@ while capture.isOpened():
     dsize = (width, height)
     
     # DESENHA LINHA NA TELA
-    cv2.line(outputFrame, (int(corner[0][0][2][0]), int(corner[0][0][2][1])), (int(corner[0][0][2][0]), int(corner[0][0][2][1])) , (0, 0, 255), 70)
+    #cv2.line(outputFrame, (int(corner[0][0][2][0]), int(corner[0][0][2][1])), (int(corner[0][0][2][0]), int(corner[0][0][2][1])) , (0, 0, 255), 70)
     
     # resize image
     out2 = cv2.resize(outputFrame, dsize)
     print(frameID)
     cv2.imshow('Estimated POSE', out2)
     
-    if(frameID == 1300):
+    if(frameID == endFRAME):
         break
     
     key = cv2.waitKey(1) & 0xFF
@@ -226,8 +229,8 @@ capture.release()
 cv2.destroyAllWindows()
 
 
-x = corners[0:][0]
-print(x)
+#x = corners[0:][0]
+#print(x)
 
 #rint(tvecs.shape)
 
@@ -246,7 +249,7 @@ ax = plt.plot(TvecsTable.tx, TvecsTable.ty)
 #plt.show()
 
 fig2 = plt.figure(figsize=(7,7))
-print (corners, corners[1])
+#print (corners, corners[1])
 ax2 = plt.plot(corners)
 fig3= plt.figure()
 #import pdb; pdb.set_trace()

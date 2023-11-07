@@ -5,7 +5,7 @@
             "name": "C++ Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "C:\\Users\\PCPC-f\\Documents\\TCCCC\\GITCONTROL-DEV\\my_program.exe",
+            "program": "${workspaceFolder}\\my_program.exe",
             "cwd": "${workspaceFolder}\\ICP\\eigen-3.4.0"
         },
         {

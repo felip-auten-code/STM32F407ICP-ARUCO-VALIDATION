@@ -208,7 +208,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences(Eigen::Matrix<double, Dynamic
 
 double DistancePtP(Eigen::Vector2d p, Eigen::Vector2d q){
     Eigen::Vector2d dist = q - p;
-    return dist.dot(dist);
+    return mod2d(dist);
 }
 
 // most updated
@@ -220,13 +220,13 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
+    double acceptance_level = 8.5;
     for (int i =0; i< PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
-        double minDIST = 9999;
+        double minDIST = 9999, dist =999;
         int closestPointIndex = -1;
-        double acceptance_level = 370;
         Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
         //Eigen::Vector2d q_aux= {PCL_o(i-1,0), PCL_o(i-1,1)};
 
@@ -234,11 +234,11 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
             Eigen::Vector2d p1= {PCL_target(j,0), PCL_target(j,1)};
             //Eigen::Vector2d p2= {PCL_target(j+1,0), PCL_target(j+1,1)};
             //Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
-            double dist = DistancePtP(p1, q);
+            dist = DistancePtP(p1, q);
             //  (PCL_o(i,0)!=0 && PCL_target(j,0)!= 0)
-            if(dist < minDIST){                    // nooo zeros  to test
+            if(dist < minDIST){                     // nooo zeros  to test
                 minDIST = dist;
-                closestPointIndex = j;      // alinha direita
+                closestPointIndex = j;              // alinha direita
             }
         }
         // adiciona correspondencia
@@ -247,10 +247,14 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
         dists[count] = minDIST;
         sum_dists += minDIST;				// use to calc error later
 
+        if(minDIST == 9999){
+            minDIST = 9999;
+            std::cout << "FODEU" << dist << std::endl;
+        }
         
         // Implementar alguma abordagem para remover os pontos que possuem distancias grandes entre indices consecutivos
         // ELIMINATE PAIR BY THE GIVEN THRESHOLD (acceptance_level)
-        if(minDIST < acceptance_level){												// try to eliminate pairs with error
+        if(minDIST < acceptance_level){												        // try to eliminate pairs with error
 			corr.row(count) << i, closestPointIndex;
 			count++;
 		}else{
@@ -263,9 +267,9 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 
 	// NEWWW CODE
 	// MEDIA DAS DISTANCIAS
-	// med_dists = sum_dists * (0.002777);        // med = sum * 1/120
-	// var1=0;
-	// for (int i =0; i < corr.rows() ; i++){
+	// med_dists = sum_dists * (0.002777);        // med = sum * 1/360
+	// var1 = 0;
+	// for (int i =0 ; i < corr.rows() ; i++){
 	// 	// VARIANCIA
 	// 	var1 += abs(dists[i] - med_dists);
 
@@ -275,7 +279,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 	// for (int i =0; i < corr.rows() ; i++){										  //	eliminate on median deviation
 	// 	// VARIANCIA
 	// 	variance_dists = abs(dists[i] - med_dists);
-	// 	if(variance_dists > med_deviation*2.7){
+	// 	if(variance_dists > med_deviation*1.9){
 	// 		corr.row(i) << -1, -1;
 	// 	}
 	// }
@@ -300,6 +304,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 //			}
 //		}
 //	}
+//    print_vec(dists, 360);
 	return corr;
 
 }
@@ -812,7 +817,7 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     centroid_b = CenterOfMass(transformed_points);
 
 
-    for (int i =0; i< 38; i++){
+    for (int i =0; i < 38; i++){
         //std::cout << "error: \t" << "\n";
         CORR = FindCorrenpondences_PtP(updt_p, transformed_points);
         n_err = getError(updt_p, transformed_points, CORR );
@@ -869,14 +874,14 @@ int main(){
     }
 
     f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
-    print_vec(f_scans[45], TEST_SIZE);
+    //print_vec(f_scans[45], TEST_SIZE);
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  org, tgt;
     Eigen::Matrix<double, 1, 3> trans_steps;
-    ofstream outFile("./data/PC_ICP_output2.txt");
+    ofstream outFile("./data/PC_ICP_output5.txt");
     for (int i = 0; i < size_samples - 1; i++){
         org << f_scan_i_ToEigenMatrix(f_scans[i], TEST_SIZE);
         tgt << f_scan_i_ToEigenMatrix(f_scans[i+1], TEST_SIZE);
-        std::cout << tgt << std::endl;
+        //std::cout << tgt << std::endl;
         //print_vec(f_scans[i], TEST_SIZE);
         //std::cout << org << std::endl;
         //Sleep(5000);
