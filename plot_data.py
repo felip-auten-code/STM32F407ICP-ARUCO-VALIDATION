@@ -30,7 +30,7 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
                 if(ctt_line == 85):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 87):
+                elif(ctt_line == 187):
                     scan_end[idx_scan_end] = float(num) 
                     idx_scan_end+=1                
                 num=""
@@ -120,8 +120,8 @@ if __name__ == '__main__':
     ax2 = plt.axes()
     for i in range(0, len(x)):
         ax2.arrow(0,0, x[i], y[i])
-    plt.xlim(-400, 400)
-    plt.ylim(-400, 400)
+    plt.xlim(-3000, 3000)
+    plt.ylim(-3000, 3000)
     
     plt.figure(4)
     plt.stem(axis_x,scan_end )

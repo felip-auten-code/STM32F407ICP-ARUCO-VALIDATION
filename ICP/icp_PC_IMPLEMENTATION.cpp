@@ -220,7 +220,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 8.5;
+    double acceptance_level = 1.5;
     for (int i =0; i< PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
@@ -817,7 +817,7 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     centroid_b = CenterOfMass(transformed_points);
 
 
-    for (int i =0; i < 38; i++){
+    for (int i =0; i < 100; i++){
         //std::cout << "error: \t" << "\n";
         CORR = FindCorrenpondences_PtP(updt_p, transformed_points);
         n_err = getError(updt_p, transformed_points, CORR );

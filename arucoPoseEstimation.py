@@ -71,7 +71,7 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
     if len(corners) > 0:
         for i in range(0, len(ids)):
             # Estimate pose of each marker and return the values rvec and tvec         ---     (different from those of camera coefficients)
-            rvec_list , tvec_list, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 8, matrix_coefficients,
+            rvec_list , tvec_list, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 15.5, matrix_coefficients,
                                                                        distortion_coefficients)
             # Draw a square around the markers
             imaxis = cv2.aruco.drawDetectedMarkers(frame, corners) 
@@ -96,26 +96,30 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
             
             if(frameID == startFRAME):
                 #import pdb; pdb.set_trace()
-                f_tvec.append(t)
+                f_tvec.append(t)                # mascara (pos inicial)
                 f_rvec.append(r)
             
             #import pdb; pdb.set_trace()
             if(frameID > startFRAME):
                 
                 #import pdb; pdb.set_trace()
+            
                 
                 t_masked =  t - f_tvec[0]                           #  MASCARA TRASLACAO
+                #t_masked = np.dot(ROT_masked, t) - np.dot(ROT_masked, f_tvec[0])
                 #import pdb; pdb.set_trace() 
-                r_masked =  r + f_rvec[0]                           #  MASK  ROT
+                r_masked =  r - f_rvec[0]                           #  MASK  ROT
+                # rotationMASK, jac = cv 
                 #import pdb; pdb.set_trace()
                 #ROT_r, jac = cv2.Rodrigues(r)
                 #f_rvec = np.array(f_rvec)
                 #import pdb; pdb.set_trace()
                 #ROT_first, jac = cv2.Rodrigues(f_rvec[0])
-            
-                #ROT_masked = ROT_r - ROT_first
-                
+                ROT_masked, jac = cv2.Rodrigues(np.flip(r_masked))
                 TrueROT, jacobian = cv2.Rodrigues(r_masked)
+                #TrueROT = alg.RotationMatrixEuler(r_masked[2], r_masked[1], r_masked[0]) 
+                
+                
 
                 #import pdb; pdb.set_trace()
             
@@ -135,6 +139,7 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
                 real_O_tvec2 = np.dot(rotM2, t_)
             
                 REAL_vec = np.reshape(t_masked, (3,1))
+                #REAL_vec = np.dot(ROT_masked, REAL_vec)
                 pitch, roll, yaw = alg.rotationMatrixToEulerAngles(TrueROT)
                 Rx, Ry, Rz = alg.rotationMatrixToEulerAngles(TrueROT)
                 #pitch, roll, yaw = alg.rotationMatrixToEulerAngles(rotM2)
@@ -224,7 +229,7 @@ while capture.isOpened():
     if(key == ord('q')):
         break
     if(key == ord('p')):
-        cv2.waitKey(-1)     #wait until any key is pressed
+        cv2.waitKey(-1)              # wait until any key is pressed
 capture.release()
 cv2.destroyAllWindows()
 
