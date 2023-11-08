@@ -103,24 +103,17 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
             if(frameID > startFRAME):
                 
                 #import pdb; pdb.set_trace()
-            
                 
-                t_masked =  t - f_tvec[0]                           #  MASCARA TRASLACAO
-                #t_masked = np.dot(ROT_masked, t) - np.dot(ROT_masked, f_tvec[0])
-                #import pdb; pdb.set_trace() 
-                r_masked =  r - f_rvec[0]                           #  MASK  ROT
-                # rotationMASK, jac = cv 
-                #import pdb; pdb.set_trace()
-                #ROT_r, jac = cv2.Rodrigues(r)
-                #f_rvec = np.array(f_rvec)
-                #import pdb; pdb.set_trace()
-                #ROT_first, jac = cv2.Rodrigues(f_rvec[0])
-                ROT_masked, jac = cv2.Rodrigues(np.flip(r_masked))
-                TrueROT, jacobian = cv2.Rodrigues(r_masked)
-                #TrueROT = alg.RotationMatrixEuler(r_masked[2], r_masked[1], r_masked[0]) 
-                
-                
+                t_masked =  t - f_tvec[0]                               #  MASCARA TRASLACAO
+                r_masked =  r - f_rvec[0]                               #  MASK  ROT
+                r_aux = f_rvec[0]                                       #  vetor Rotação (camera -> pos inicial)   
 
+                ROT_masked, jac = cv2.Rodrigues((r_masked))      
+                   
+                TrueROT, jacobian = cv2.Rodrigues((r_aux))              #  MATRIZ de Rotação (camera -> pos inicial)   
+
+
+                true_translation = np.dot(np.linalg.inv(TrueROT), t_masked)              # Pr_a = Ro_a^(-1) * (Po_a - Po_r)
                 #import pdb; pdb.set_trace()
             
                 t_ = t * -1                 # flip 
@@ -138,10 +131,10 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
                 real_O_tvec = np.dot(rotM, t_)
                 real_O_tvec2 = np.dot(rotM2, t_)
             
-                REAL_vec = np.reshape(t_masked, (3,1))
+                REAL_vec = np.reshape(true_translation, (3,1))
                 #REAL_vec = np.dot(ROT_masked, REAL_vec)
                 pitch, roll, yaw = alg.rotationMatrixToEulerAngles(TrueROT)
-                Rx, Ry, Rz = alg.rotationMatrixToEulerAngles(TrueROT)
+                Rx, Ry, Rz = alg.rotationMatrixToEulerAngles(ROT_masked)
                 #pitch, roll, yaw = alg.rotationMatrixToEulerAngles(rotM2)
                 print(yaw, pitch, roll)
                 #np.transpose(t_masked)

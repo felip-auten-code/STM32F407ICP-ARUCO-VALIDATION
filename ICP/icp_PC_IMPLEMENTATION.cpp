@@ -99,11 +99,11 @@ Eigen::Matrix<double, 3, 3> getTransformation(double dx, double dy, double theta
          sin(theta), cos(theta), dy,
          0,          0,          1;
 
-    // if(T.determinant() < 0){
-    //     T << cos(theta),  sin(theta),  dx,
-    //          -sin(theta), cos(theta), dy,
-    //          0,           0,          1;
-    // }
+    if(T.determinant() < 0){
+        T << cos(theta),  sin(theta),  dx,
+             -sin(theta), cos(theta), dy,
+             0,           0,          1;
+    }
     return T;
 }
 
@@ -220,12 +220,12 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 1.5;
+    double acceptance_level = 0.05;
     for (int i =0; i< PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
-        double minDIST = 9999, dist =999;
+        double minDIST = 9999, dist =9999;
         int closestPointIndex = -1;
         Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
         //Eigen::Vector2d q_aux= {PCL_o(i-1,0), PCL_o(i-1,1)};
@@ -482,7 +482,8 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
     //out.block<1,2>(0,0) << 0,0;
     tt = getTransformation(0, 0, out(0,2));
 
-    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();
+    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();                            // Translation = Cq - R.Cp
+
     //translationR = out.block<1,2>(0,0).transpose() - tt.block<2,2>(0,0) * out.block<1,2>(0,0).transpose();
 
     //new_err = getError(org, tgt, correspondences);
@@ -699,11 +700,11 @@ int mainCPP(){
     Eigen::Matrix<double, 3, 3> HOM;
     cumulative.setZero();
     transf.setZero();
-    true_transform << .52, .45, 0.134;
+    true_transform << .52, .45, 0.00134;
     transformed_points = computeTransform(source_points, true_transform);
 
     //std::cout << "target: \n"           << transformed_points << "\n";
-    //transformed_points = introduceError(transformed_points, 0.15);
+    transformed_points = introduceError(transformed_points, 0.55);
     //std::cout << "target(noise): \n"           << transformed_points << "\n";
 
     //transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
@@ -766,8 +767,8 @@ int mainCPP(){
 
     final_transform.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(rot_points);
 
-    //std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
-    //std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
+    std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
+    std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
     std::cout << "Translation FINAL ICP:\n"             << final_transform                          << std::endl;
 
     rot_points = computeTransform(source_points, final_transform);
