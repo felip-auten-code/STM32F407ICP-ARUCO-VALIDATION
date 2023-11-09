@@ -597,7 +597,7 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
 	double ang;
 	//double coord[720];
 	Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> out;
-    double conversionToCentimeter = 1;
+    double conversionToCentimeter = 0.1;
 
 
 	for ( int i=0 ; i< size_scan ; i++){
