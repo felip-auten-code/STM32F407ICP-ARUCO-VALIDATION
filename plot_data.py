@@ -31,7 +31,7 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
                     scan[idx_scan] = float(num)
                     idx_scan+=1
                 elif(ctt_line == 187):
-                    scan_end[idx_scan_end] = float(num) 
+                    scan_end[idx_scan_end] = float(num)
                     idx_scan_end+=1                
                 num=""
             if(str(i) == ']'):
@@ -40,6 +40,7 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
 print(ctt_line)
 
 def convert_scan_to_cartesian(scan):
+    conversionToCentimeters = 1
     for i in range(0,360):
         rad = i * PI / 180
         COORDINATES_X[i] = scan[i] * m.cos(rad)

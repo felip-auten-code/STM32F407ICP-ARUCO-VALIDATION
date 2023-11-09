@@ -20,7 +20,7 @@ const int TEST_DIMENSION =2;
 const int TEST_SIZE = 360;
 double PI = 3.1415;
 
-/*
+/*      INFOS ON INPUT
 
     SIZE_OF_VARIABLES:
         M: Matrix
@@ -75,21 +75,13 @@ double PI = 3.1415;
 
 
 */
-/*
-    OPERATIONS
-
-
-
-
-    #problematic
-        computeTransform  --> more mem space ?  what is temporary ?
+/*      OPERATIONS
+ 
 
 */
 
 using namespace Eigen;
 using namespace std;
-
-
 
 
 Eigen::Matrix<double, 3, 3> getTransformation(double dx, double dy, double theta)
@@ -207,8 +199,8 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences(Eigen::Matrix<double, Dynamic
 }
 
 double DistancePtP(Eigen::Vector2d p, Eigen::Vector2d q){
-    Eigen::Vector2d dist = q - p;
-    return mod2d(dist);
+    Eigen::Vector2d d = q - p;
+    return (d.dot(d));
 }
 
 // most updated
@@ -220,8 +212,8 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 0.05;
-    for (int i =0; i< PCL_o.rows(); i++){
+    double acceptance_level = 5.5;
+    for (int i =0; i < PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
@@ -229,9 +221,9 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
         int closestPointIndex = -1;
         Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
         //Eigen::Vector2d q_aux= {PCL_o(i-1,0), PCL_o(i-1,1)};
-
+        Eigen::Vector2d p1;
         for (int j = 0; j < PCL_target.rows() ; j++){
-            Eigen::Vector2d p1= {PCL_target(j,0), PCL_target(j,1)};
+            p1= {PCL_target(j,0), PCL_target(j,1)};
             //Eigen::Vector2d p2= {PCL_target(j+1,0), PCL_target(j+1,1)};
             //Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
             dist = DistancePtP(p1, q);
@@ -249,7 +241,8 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 
         if(minDIST == 9999){
             minDIST = 9999;
-            std::cout << "FODEU" << dist << std::endl;
+            std::cout << "FODEU " << dist << "\t" << p1 << "\t" << q << std::endl;
+            //break;
         }
         
         // Implementar alguma abordagem para remover os pontos que possuem distancias grandes entre indices consecutivos
@@ -400,15 +393,15 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
                                 int MAX_ITERATIONS,
                                 double TOLERANCE = 5e-3){
 
-    Eigen::Matrix<double,1,3> 				out, transf;                  										// update  de paramentros da transformação
-    Eigen::Matrix<double,1,2> 				translation, translationR, centroid_p, centroid_q;                  // palpite inicial
-    Eigen::Matrix<double, 3, 3> 			tt;
-    Eigen::Matrix<int, Dynamic, 2> 			correspondences, n_corr;         									// correspondencias - DECLARE STATIC
-    Eigen::Matrix<double, Dynamic, 2> 		covariance;
-    Eigen::Matrix<double, TEST_SIZE*2, 3> 			A;                    												// Matriz A         - DECLARE STATIC
-    Eigen::Matrix<double, TEST_SIZE*2, 1> 			b;                    												// Matriz b         - DECLARE STATIC
+    Eigen::Matrix<double,1,3> 				out, transf;                  						    // update  de paramentros da transformação
+    Eigen::Matrix<double,1,2> 				translation, translationR, centroid_p, centroid_q;      // palpite inicial
+    Eigen::Matrix<double, 3, 3> 			tt;                                                     // transformação
+    Eigen::Matrix<int, Dynamic, 2> 			correspondences, n_corr;         						// correspondencias - DECLARE STATIC
+    Eigen::Matrix<double, Dynamic, 2> 		covariance;                                             // not used
+    Eigen::Matrix<double, TEST_SIZE*2, 3> 	A;                    									// Matriz A         - DECLARE STATIC
+    Eigen::Matrix<double, TEST_SIZE*2, 1> 	b;                    									// Matriz b         - DECLARE STATIC
 //    double prev_err=0, new_err=0;
-    double err=0;
+    double err = 0;
     transf.setZero();
     //transf.block<1,2>(0,0) = CenterOfMass(tgt) - CenterOfMass(org);
 
@@ -417,10 +410,10 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
     //prev_err = getError(org,tgt, correspondences);          // erro antes do palpite inicial
 
 
-    centroid_p = CenterOfMass(org);
-    centroid_q = CenterOfMass(tgt);
-    translation = centroid_q - centroid_p;    // translação levando em conta o centroide das duas nuvens
-    transf.block<1,2>(0,0) = translation;
+    // centroid_p = CenterOfMass(org);
+    // centroid_q = CenterOfMass(tgt);
+    // translation = centroid_q - centroid_p;    // translação levando em conta o centroide das duas nuvens
+    // transf.block<1,2>(0,0) = translation;
 
 
     //std::cout << "translation before: \t" << translation << "\n";
@@ -434,9 +427,9 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
     //err = getError(org, tgt, correspondences);              // erro após a transformação inicial
     //std::cout << "NEWW _ corr:\n" << n_corr << std::endl;
     int index_system=0;
-    for( int i=0; i< n_corr.rows(); i++){
+    for( int i=0; i < n_corr.rows(); i++){
 
-        int s = n_corr(i,0);
+        int s  = n_corr(i,0);
         int s2 = n_corr(i,1);
 
 //        covariance.conservativeResize(i*2 +2, 2);
@@ -458,11 +451,11 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 			index_system++;
         }
         // else{
-        //     A.row(2*index_system)      <<  0,0,0;              //  A = | 1    0   -p_y |
-		// 	A.row(2*index_system +1)   <<  0,0,0;              //      | 0    1    p_x |
+        //     A.row(2*index_system)      <<  0,0,0;                //  A = | 1    0   -p_y |
+		// 	A.row(2*index_system +1)   <<  0,0,0;                   //      | 0    1    p_x |
 
-		// 	b.row(2*index_system)      <<  0;           //  b = | q_x - p_x |
-		// 	b.row(2*index_system +1)   <<  0;           //      | q_q - p_y |
+		// 	b.row(2*index_system)      <<  0;                       //  b = | q_x - p_x |
+		// 	b.row(2*index_system +1)   <<  0;                       //      | q_q - p_y |
 		// 	index_system++;
         // }
 
@@ -482,7 +475,7 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
     //out.block<1,2>(0,0) << 0,0;
     tt = getTransformation(0, 0, out(0,2));
 
-    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();                            // Translation = Cq - R.Cp
+    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();         // Translation = Cq - R.Cp
 
     //translationR = out.block<1,2>(0,0).transpose() - tt.block<2,2>(0,0) * out.block<1,2>(0,0).transpose();
 
@@ -517,7 +510,6 @@ Eigen::Matrix<double, Dynamic, 2> setLine(Eigen::Matrix<double, Dynamic, 2> sour
     }
     return source;
 }
-
 
 Eigen::Matrix<double, Dynamic, 2> setCorner(Eigen::Matrix<double, Dynamic, 2> source){
     /*
@@ -605,11 +597,11 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
 	double ang;
 	//double coord[720];
 	Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> out;
-    double conversionToCentimeter = 0.1;
+    double conversionToCentimeter = 1;
 
 
 	for ( int i=0 ; i< size_scan ; i++){
-		ang = i * PI * (0.005555);        // convertion to radians
+		ang = i * PI * (0.01745);        // convertion to radians
 //		coordinates[i][0] =  scan_ranges[i] * cos(ang);
 //		coordinates[i][1] =  scan_ranges[i] * sin(ang);
 		out(i,0) = double(scan_ranges[i] * cos(ang))  * conversionToCentimeter;
@@ -642,18 +634,26 @@ double** fileToDistances(std::string path, int size, double** out){
     int count_scan_idx=0;
     std::cout  << path << std::endl;
     while(sensor_file.is_open() &&  count_scan_idx < size && getline(sensor_file, line) ){
-        int  count_dist_idx =0;
+        int  count_dist_idx = 0;
         for (int i =0; i < line.length(); i++){
             //std::cout << see << std::endl;                                                                    // it gets here! numbers OK
             if(line[i] != '[' && line[i] != ' ' && line[i] != ',' && line[i] != ']'){
                 see += line[i];
 
             }else if(line[i] == ','){
-                out[count_scan_idx][count_dist_idx] = stod(see);
-                //std::cout  << out[count_scan_idx][count_dist_idx] << std::endl;                               //
-                count_dist_idx +=1;
-                //std::cout << stod(see) << std::endl;                                                          // it gets here! OK, 
-                see = "";                                                                                       // but always check size of vector
+                if(see.find("inf") != string::npos){
+                    // is found
+                    out[count_scan_idx][count_dist_idx] = -1;
+                    //std::cout  << out[count_scan_idx][count_dist_idx] << std::endl;                               //
+                    count_dist_idx +=1;
+                }else{
+                    out[count_scan_idx][count_dist_idx] = stod(see);
+                    //std::cout  << out[count_scan_idx][count_dist_idx] << std::endl;                               //
+                    count_dist_idx +=1;
+                    //std::cout << stod(see) << std::endl;                                                          // it gets here! OK, 
+                }
+    
+                see = "";                                                                                           // but always check size of vector
             }else if(line[i] == ']'){
                 count_scan_idx += 1;
                 count_dist_idx = 0;
@@ -784,27 +784,20 @@ int mainCPP(){
 
 Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> source_points, 
                                             Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points        ){
-
-
-
     // PC TEST
-    //const int TEST_DIMENSION = 2;
-    //const int TEST_SIZE = 60;
-    double error=0;
+
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  updt_p, rot_points, transformed_points;
 
-
-    //source_points = Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION>::Random();
-    //source_points = setCorner(source_points);
-    Eigen::Matrix<double, 1, 3> transf, translation;                                              // palpite inicial
-    Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;
-    Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;
-    Eigen::Matrix<int, Dynamic, 2> CORR;
+    Eigen::Matrix<double, 1, 3> transf, translation;                                            // palpite inicial
+    Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;     // Transformações (tx, ty, theta)
+    Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;                                    // Centros de massa
+    Eigen::Matrix<int, Dynamic, 2> CORR;                                                        // Guarda Correspondencias
     Eigen::Matrix<double, 3, 3> HOM;
-    cumulative.setZero();
-    transf.setZero();
-    true_transform << 0.25, 10.4, -0.584;
-    transformed_points = target_points;
+    // INICIALIZAÇAO
+    cumulative.setZero();                       // ZEROS   
+    transf.setZero();                           // ZEROS
+    true_transform << 0.25, 10.4, -0.584;       // Somente para teste unitário
+    transformed_points = target_points;         // used variable = transformed_points
 
 
  
@@ -813,33 +806,38 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
 
     transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
     updt_p = computeTransform(source_points, transf);
-    double err = 0, n_err =0;
+    double err = 0., n_err = 0., diff =0., previous_err = 0.;
     translation = transf;
     centroid_b = CenterOfMass(transformed_points);
 
 
     for (int i =0; i < 100; i++){
-        //std::cout << "error: \t" << "\n";
+        std::cout << updt_p << "\n";
         CORR = FindCorrenpondences_PtP(updt_p, transformed_points);
-        n_err = getError(updt_p, transformed_points, CORR );
+        //n_err = getError(updt_p, transformed_points, CORR);
         
-        //std::cout << "error: \t" << "\n";
+        //std::cout  <<  "error: \t" << "\n";
         icp_transform = ICP(updt_p, transformed_points, 100, 0.005);
-        //std::cout << "error: \t" << "\n";
+        //std::cout  <<  "error: \t" << "\n";
      
 
 
         //cumulative += icp_transform;
-        updt_p = computeTransform(updt_p, icp_transform);
+        updt_p = computeTransform(updt_p, icp_transform);               // n 
         cumulative += icp_transform;
         //std::cout << "error: \t" << "\n";
         //CORR = FindCorrenpondences_PtP(updt_p,transformed_points);
-        err = getError(updt_p, transformed_points, CORR );
+        //err = getError(updt_p, transformed_points, CORR );              // n
 
         //std::cout << "CORRESPONDENCES: \t" << CORR << "\n";
         //std::cout << "errorss: \t" << n_err << "\t" << err << "\n";
-        if (n_err < 0.00001){
-            i  = 100;
+        err = getError(updt_p, transformed_points, CORR);
+        diff = previous_err - err;
+        previous_err = err;
+        if(i > 6 && err <= 0.0005){
+            std::cout << "error: \t" <<  err << "\n";
+            std::cout << "iteration (out): \t" <<  i << "\n";
+            break;
         }
         //std::cout << "Transformation [i=" << i << "]:\t" << icp_transform << std::endl;
     }
@@ -879,13 +877,13 @@ int main(){
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  org, tgt;
     Eigen::Matrix<double, 1, 3> trans_steps;
     ofstream outFile("./data/PC_ICP_output5.txt");
-    for (int i = 0; i < size_samples - 1; i++){
+    for (int i = 0; i < size_samples - 3; i+=3){
         org << f_scan_i_ToEigenMatrix(f_scans[i], TEST_SIZE);
-        tgt << f_scan_i_ToEigenMatrix(f_scans[i+1], TEST_SIZE);
+        tgt << f_scan_i_ToEigenMatrix(f_scans[i+3], TEST_SIZE);
         //std::cout << tgt << std::endl;
         //print_vec(f_scans[i], TEST_SIZE);
         //std::cout << org << std::endl;
-        //Sleep(5000);
+        //Sleep(2000);
         //std::cout << f_scans[i] << std::endl;
         trans_steps = main_ICP(org, tgt);
         std::cout << trans_steps << std::endl;
