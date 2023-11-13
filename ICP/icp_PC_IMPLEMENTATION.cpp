@@ -91,11 +91,11 @@ Eigen::Matrix<double, 3, 3> getTransformation(double dx, double dy, double theta
          sin(theta), cos(theta), dy,
          0,          0,          1;
 
-    if(T.determinant() < 0){
-        T << cos(theta),  sin(theta),  dx,
-             -sin(theta), cos(theta), dy,
-             0,           0,          1;
-    }
+    // if(T.determinant() < 0){
+    //     T << cos(theta),  sin(theta),  dx,
+    //          -sin(theta), cos(theta), dy,
+    //          0,           0,          1;
+    // }
     return T;
 }
 
@@ -200,7 +200,8 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences(Eigen::Matrix<double, Dynamic
 
 double DistancePtP(Eigen::Vector2d p, Eigen::Vector2d q){
     Eigen::Vector2d d = q - p;
-    return sqrt(d.dot(d));
+    //return sqrt(d.dot(d));
+    return mod2d(d);
 }
 
 // most updated
@@ -212,32 +213,30 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 1120.5;
+    double acceptance_level = 2.5;
     for (int i =0; i < PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
-        double minDIST = 9999, dist =9999;
+        double minDIST = 9999, dist = 9999;
         int closestPointIndex = -1;
         Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
         //Eigen::Vector2d q_aux= {PCL_o(i-1,0), PCL_o(i-1,1)};
         Eigen::Vector2d p1;
         for (int j = 0; j < PCL_target.rows() ; j++){
             p1= {PCL_target(j,0), PCL_target(j,1)};
-            //Eigen::Vector2d p2= {PCL_target(j+1,0), PCL_target(j+1,1)};
-            //Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
+
             dist = DistancePtP(p1, q);
-            //  (PCL_o(i,0)!=0 && PCL_target(j,0)!= 0)
+
             if(dist < minDIST){                     // nooo zeros  to test
                 minDIST = dist;
                 closestPointIndex = j;              // alinha direita
             }
         }
-        // adiciona correspondencia
 
 
-        dists[count] = minDIST;
-        sum_dists += minDIST;				// use to calc error later
+        dists[count]    = minDIST;
+        sum_dists       += minDIST;				// use to calc error later
 
         if(minDIST == 9999){
             minDIST = 9999;
@@ -311,8 +310,8 @@ Eigen::Matrix<double,1,2> CenterOfMass( Eigen::MatrixXd PtCld){
         yU += PtCld(i,1);
         ct++;
     }
-    xU =  xU /  ct;
-    yU =  yU /  ct;
+    xU =  double(xU /  ct);
+    yU =  double(yU /  ct);
     Eigen::Matrix<double,1,2> r ;
     r << xU, yU;
     //r(0) = xU;
@@ -324,25 +323,40 @@ Eigen::Matrix<double, Dynamic, 2> computeTransform( Eigen::Matrix<double, Dynami
                                                     Eigen::Matrix<double, 1, 3> transform){
 
     int siz = source.rows();
-    Eigen::Matrix<double, Dynamic, 2> out;
-    Eigen::MatrixXd temp;
-    Eigen::Vector2d tt;
+    Eigen::Matrix<double, Dynamic, 2>   out;
+    Eigen::MatrixXd                     temp;
+    Eigen::Vector2d                     tt;
     Eigen::Matrix<double, 3, 3> transformation; 
     transformation = getTransformation(transform(0,0), transform(0,1), transform(0,2));
     for (int i=0; i < source.rows(); i++){
         tt = source.row(i); 
-        //out.resize(i+1, 2);
+
         out.conservativeResize(i+1,2);
-        //out(i,0) = source(i,0);
-        //out(i,1) = source(i,1);
-        //out.resize(i+2, 2);
-        //out.row(i) = (transformation.block<2,2>(0,0) * source.row(i).transpose() + transformation.block(2,1,0,2).transpose());
+
         temp = (transformation.block<2,2>(0,0) * source.row(i).transpose() + transformation.block<2,1>(0,2));
-        //std::cout << "temp \n\n" << tt << std::endl;
-        //out.block<1,2>(i,0) = temp.transpose();
-        //out.row(i) = temp.transpose();
-        //std::cout << "iteration: \t " << i << std::endl;
-        //std::cout << "" << temp << std::endl;
+
+        out.row(i) = temp.transpose();
+    }
+
+    return out;                           
+} 
+
+Eigen::Matrix<double, Dynamic, 2> computeTransformPoint( Eigen::Matrix<double, Dynamic, 2> source,
+                                                    Eigen::Matrix<double, 1, 3> transform){
+
+    int siz = source.rows();
+    Eigen::Matrix<double, Dynamic, 2>   out;
+    Eigen::MatrixXd                     temp;
+    Eigen::Vector2d                     tt;
+    Eigen::Matrix<double, 3, 3> transformation; 
+    transformation = getTransformation(transform(0,0), transform(0,1), transform(0,2));
+    for (int i=0; i < source.rows(); i++){
+        tt = source.row(i); 
+
+        out.conservativeResize(i+1,2);
+
+        temp = (transformation.block<2,2>(0,0) * source.row(i).transpose() + transformation.block<2,1>(0,2));
+
         out.row(i) = temp.transpose();
     }
 
@@ -359,7 +373,6 @@ double getError(Eigen::Matrix<double, Dynamic, 2> org, Eigen::Matrix<double, Dyn
     }
     return err;
 }
-
 
 Eigen::Matrix<int, Dynamic, 2> FilterCorr(Eigen::Matrix<double, Dynamic, 2> org, Eigen::Matrix<double, Dynamic, 2> tgt, Eigen::Matrix<int, Dynamic, 2> correspondences){
     Eigen::Matrix<double, 1, 2>  err, centroid_p, controid_q;
@@ -430,7 +443,7 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 			A.row(2*index_system +1)   <<  0 , 1 ,  org(s,0);              //      | 0    1    p_x |
 
 			b.row(2*index_system)      <<  tgt(s2,0) - org(s,0);           //  b = | q_x - p_x |
-			b.row(2*index_system +1)   <<  tgt(s2,1) - org(s,1);           //      | q_q - p_y |
+			b.row(2*index_system +1)   <<  tgt(s2,1) - org(s,1);           //      | q_y - p_y |
 			index_system++;
 
 
@@ -439,7 +452,7 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 
 
 
-    //out = A.jacobiSvd(ComputeFullU | ComputeFullV).solve(b);                          // ALTERNATIVE
+    //out = A.jacobiSvd(ComputeFullU | ComputeFullV).solve(b);                                  // ALTERNATIVE
 
     out = (A.transpose() * A).ldlt().solve(A.transpose() * b);
 
@@ -563,7 +576,6 @@ Eigen::Matrix<double, 120, 2> drop_points_120(Eigen::Matrix<double, 360, 2> scan
 	return out;
 }
 
-
 Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double* scan_ranges, int size_scan){
 	double ang;
 	//double coord[720];
@@ -583,7 +595,6 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
     //Sleep(10000);
 	return out;
 }
-
 
 const int num_of_samples = 100;
 
@@ -642,7 +653,6 @@ double** fileToDistances(std::string path, int size, double** out){
     return out;
 }
 
-
 void EigentoVec(Eigen::MatrixXd eigenM, double** vec, int lin, int col){
     for (int i =0; i < lin; i++){
         for(int j =0; j < col; i++){
@@ -672,11 +682,11 @@ int mainCPP(){
     Eigen::Matrix<double, 3, 3> HOM;
     cumulative.setZero();
     transf.setZero();
-    true_transform << .52, .45, 0.00134;
+    true_transform << .52, .75, 0.0134;
     transformed_points = computeTransform(source_points, true_transform);
 
     //std::cout << "target: \n"           << transformed_points << "\n";
-    transformed_points = introduceError(transformed_points, 0.55);
+    //transformed_points = introduceError(transformed_points, 0.55);
     //std::cout << "target(noise): \n"           << transformed_points << "\n";
 
     //transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
@@ -754,49 +764,49 @@ int mainCPP(){
     return 0;
 }
 
+Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> updated_points_final;
+
 Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> source_points, 
                                             Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points        ){
     // PC TEST
 
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  updt_p, rot_points, transformed_points;
 
-    Eigen::Matrix<double, 1, 3> transf, translation;                                            // palpite inicial
-    Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;     // Transformações (tx, ty, theta)
-    Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;                                    // Centros de massa
-    Eigen::Matrix<int, Dynamic, 2> CORR;                                                        // Guarda Correspondencias
-    Eigen::Matrix<double, 3, 3> HOM;
-    Eigen::Matrix<double, 1, 3> prev_cummulative;
+    Eigen::Matrix<double, 1, 3>         transf, translation;                                            // palpite inicial
+    Eigen::Matrix<double, 1, 3>         true_transform, icp_transform, cumulative, final_transform;     // Transformações (tx, ty, theta)
+    Eigen::Matrix<double, 1, 2>         centroid_a, centroid_b, res;                                    // Centros de massa
+    Eigen::Matrix<int, Dynamic, 2>      CORR;                                                           // Guarda Correspondencias
+    Eigen::Matrix<double, 3, 3>         HOM;
+    Eigen::Matrix<double, 1, 3>         prev_cummulative;
+    double                              err = 0., n_err = 0., diff = 0., previous_err = 0.;
+
     // INICIALIZAÇAO
-    cumulative.setZero();                           // ZEROS   
-    transf.setZero();                               // ZEROS
-    //true_transform << 0.25, 10.4, -0.584;         // Somente para teste unitário
-    transformed_points = target_points;             // used variable = transformed_points
+    cumulative.setZero();                               // ZEROS   
+    transf.setZero();                                   // ZEROS
+    //true_transform << 0.25, 10.4, -0.584;             // Somente para teste unitário
+    //transformed_points = target_points;                 // used variable = target_points
 
-
- 
     
     // INITIAL GUESS
 
-    transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
-    updt_p = computeTransform(source_points, transf);
-    double err = 0., n_err = 0., diff = 0., previous_err = 0.;
+    transf.block<1,2>(0,0)      = CenterOfMass(target_points) - CenterOfMass(source_points);
+    updt_p                      = computeTransform(source_points, transf);
+
     translation = transf;
-    //centroid_b = CenterOfMass(transformed_points);
+    //centroid_b = CenterOfMass(target_points);
 
 
     for (int i =0; i < 100; i++){
         
-        CORR = FindCorrenpondences_PtP(updt_p, transformed_points);
-        //n_err = getError(updt_p, transformed_points, CORR);
+        //n_err = getError(updt_p, target_points, CORR);
         
         
-        icp_transform = ICP(updt_p, transformed_points, 100, 0.005);
-     
-
-        updt_p = computeTransform(updt_p, icp_transform);               // n 
+        icp_transform = ICP(updt_p, target_points, 100, 0.005);
+        updt_p = computeTransform(updt_p, icp_transform);                               // update
 
         cumulative += icp_transform;
-        if(i > 12 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-15){
+
+        if(i > 6 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-16){
             //std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (outByAngleConversion): \t" <<  i << "\n";
             break;
@@ -808,14 +818,15 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         //cout << "Soma T(i): " <<  cumulative(0, 2) << "\n";
 
         //std::cout << "error: \t" << "\n";
-        //CORR = FindCorrenpondences_PtP(updt_p,transformed_points);
-        //err = getError(updt_p, transformed_points, CORR );              // n
+        //CORR = FindCorrenpondences_PtP(updt_p,target_points);
+        //err = getError(updt_p, target_points, CORR );              // n
 
         //std::cout << "CORRESPONDENCES: \t" << CORR << "\n";
         //std::cout << "errorss: \t" << n_err << "\t" << err << "\n";
-        err = getError(updt_p, transformed_points, CORR);
-        diff = previous_err - err;
-        previous_err = err;
+        CORR                = FindCorrenpondences_PtP(updt_p, target_points);
+        err                 = getError(updt_p, target_points, CORR);
+        diff                = previous_err - err;
+        previous_err        = err;
         if(i > 36 && err <= 0.0005){
             std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (out): \t" <<  i << "\n";
@@ -824,10 +835,13 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         //std::cout << "Transformation [i=" << i << "]:\t" << icp_transform << std::endl;
     }
 
-    final_transform << 0, 0, cumulative(0,2);
-    rot_points = computeTransform(source_points, final_transform);
+    updated_points_final = updt_p;
+
+    final_transform     << 0, 0, cumulative(0,2);
+
+    rot_points          = computeTransform(source_points, final_transform);
     
-    final_transform.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(rot_points);
+    final_transform.block<1,2>(0,0) = CenterOfMass(target_points) - CenterOfMass(rot_points);
 
     //std::cout << "Transformation [i=100]:\n" << cumulative << std::endl;
     //std::cout << "Transformation INITIAL [i=100]:\n" << transf << std::endl;
@@ -844,10 +858,17 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
 int size_samples = 200;
 double** f_scans= (double**)malloc(size_samples * sizeof(double*));
 
+Eigen::MatrixXd update_position( Eigen::MatrixXd pos, Eigen::Matrix<double, 1, 3> trans ){
+    Eigen::MatrixXd n_pos;
+    n_pos = computeTransformPoint(pos, trans);
+    return n_pos;
+}
+
 
 int main(){
     //int size_samples = 100;
     //double** f_scans= (double**)malloc(100 * sizeof(double*));
+    time_t start, end; 
 
     for (int i =0; i< size_samples; i++){
         f_scans[i] = (double*)malloc(TEST_SIZE * sizeof(double));
@@ -855,19 +876,23 @@ int main(){
 
     f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
     //print_vec(f_scans[45], TEST_SIZE);
+
+    Eigen::Vector2d                                         position;
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>       org, tgt, auxFrame1, auxFrame2, auxFrame3, temp;              
     Eigen::Matrix<double, 1, 3>                             trans_steps, final;
     Eigen::Matrix<int, Dynamic, 2>                          CORR_aux;
     Eigen::Matrix<double, 1, 2>                             centroid_a, centroid_b, centroid_c, centroid_d;
     
+    final.setZero();
+    position.setZero();
     ofstream outFile("./data/PC_ICP_output7.txt");
 
-    int interval = 6;                                       // comparar com frames diferentes para detectar movimento
+    int interval = 8;                                       // comparar com frames diferentes para detectar movimento
 
     for (int i = 0; i < size_samples - interval; i += interval){
 
-        org     <<  f_scan_i_ToEigenMatrix(f_scans[ i ]         , TEST_SIZE);
-        tgt     <<  f_scan_i_ToEigenMatrix(f_scans[i+interval]  , TEST_SIZE);
+        org     <<  f_scan_i_ToEigenMatrix(f_scans[      i     ]  , TEST_SIZE);
+        tgt     <<  f_scan_i_ToEigenMatrix(f_scans[i + interval]  , TEST_SIZE);
 
         //std::cout << tgt << std::endl;
         //print_vec(f_scans[i], TEST_SIZE);
@@ -875,37 +900,40 @@ int main(){
         //Sleep(2000);
         //std::cout << f_scans[i] << std::endl;
 
-
-        trans_steps = main_ICP(org, tgt);                                               // 
-
+        time(&start);
+        ios_base::sync_with_stdio(false);
+        trans_steps     = main_ICP(org, tgt);                                               // 
+        time(&end);
 
         // CENTER OF MASS CHECK
-        centroid_a = CenterOfMass(org);
-        centroid_b = CenterOfMass(tgt); 
+        centroid_a      = CenterOfMass(org);
+        centroid_b      = CenterOfMass(tgt); 
 
         final(0,2)      = trans_steps(0,2);                                     // Get Rotation from Least Squares
         temp            = computeTransform(org, final);                         // Aply rotation
         centroid_c      = CenterOfMass(temp);                                   // New center of mass of the rotated frame
 
 
-        final.block<1,2>(0,0) = (centroid_b - centroid_a);
+        final.block<1,2>(0,0)  =   (centroid_b - centroid_c) ;
 
-        cout << "MASS ORG: " << centroid_a << "\n";
-        cout << "MASS TGT: " << centroid_b << "\n";
-        cout << "MASS TTT: " << centroid_c << "\n";
+        time_t time_taken = double(end - start);
+        //cout << "MASS ORG: "        << centroid_a                       << "\n";
+        //cout << "MASS TTT: "        << centroid_c                       << "\n";
+        cout << "TIME: "                << time_taken << std::setprecision(5)        << "\n";
+        cout << "FRAME: "               << i                                    << "\n";
 
-
-        std::cout   << final << std::endl;
-        outFile     << final << std::endl;
+        // trans_steps.block<1,2>(0,0) *= 2;
+        std::cout   << trans_steps << std::endl;
+        outFile     << trans_steps << std::endl;
 
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 7){
-            auxFrame1 = org;
-            auxFrame2 = tgt;
-            CORR_aux = FindCorrenpondences_PtP(org, tgt);
-            auxFrame3 = computeTransform(org, final);
-            break;
+        if(i == interval * 15){
+            auxFrame1   = org;
+            auxFrame2   = tgt;
+            CORR_aux    = FindCorrenpondences_PtP(org, tgt);
+            auxFrame3   = computeTransform(org, trans_steps);
+            //break;
         }
 
     }
@@ -924,16 +952,22 @@ int main(){
     check_ranges.close();
     // GENERATE FILE TO CHECK THE TWO FRAMES COMPARED
     ofstream check_compare("./data/SecondFrame.txt");
-    check_compare << auxFrame2 ;
+    check_compare << auxFrame2;
     check_compare.close();
     // GENERATE FILE TO CHECK THE TWO FRAMES COMPARED
-    ofstream check_compare2("./data/TransformedFrame.txt");
-    check_compare2 << auxFrame3 ;
+    ofstream check_compare2("./data/UpdatedFrame.txt");
+    check_compare2 << updated_points_final;
     check_compare2.close();
+    // GENERATE FILE TO CHECK THE TWO FRAMES COMPARED
+    ofstream check_compare3("./data/TransformedFrame.txt");
+    check_compare3 << auxFrame3;
+    check_compare3.close();
     // INVESTIGATE CORERSPONDENCES
-    ofstream check_compare3("./data/CorrespondencesInitial.txt");
-    check_compare3 << CORR_aux ;
-    check_compare3.close();    
+    ofstream check_compare4("./data/CorrespondencesInitial.txt");
+    check_compare4 << CORR_aux;
+    check_compare4.close();    
+    // PARA PLOTAR TRAJETORIA
+    
 
 }
 

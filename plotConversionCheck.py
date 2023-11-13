@@ -77,12 +77,42 @@ with open('./data/CheckRanges.txt', mode ='r') as f:
 
 #print (x)
 #print (y)
+def centroid(vec):
+    xU =0.
+    yU =0.
+    c = 0
+    for i in vec:
+        xU+= i[0]
+        yU+= i[1] 
+        c+=1
+    if(c > 0):
+        xU = float(xU/ c)
+        yU = float(yU/ c)
+    return xU, yU
+
+
+cloud_1 = np.array([])
+
+for i in range(0, len(x)):
+    np.append(cloud_1, [x[i],y[i]])
+
+cloud_2 = np.array([])
+
+for i in range(0, len(xT)):
+    np.append(cloud_2, [xT[i],yT[i]])
+
 
 plt.figure(1)
 plt.plot(x, y, '.', label = "Frame Anterior")
 plt.plot(x1, y1, '.', label = "Frame Atual")
 plt.plot(xT, yT, '.', label = "Após transformação aplicada pelo ICP")
 plt.legend()
+
+cx ,cy = centroid(cloud_1)
+plt.plot(cx, cy, '.')
+cx2 ,cy2 = centroid(cloud_2)
+plt.plot(cx2, cy2, '.')
+
 
 plt.figure(2)
 plt.plot(axisX, ranges)

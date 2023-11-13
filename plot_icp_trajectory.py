@@ -12,7 +12,7 @@ track_orientation = [0]
 
 all_2D_transformations = []
 for i in range(0,200):
-    all_2D_transformations.append([0,0, 0])
+    all_2D_transformations.append([0, 0, 0])
 
 all_positions = []
 for i in range(0,200):
@@ -41,11 +41,31 @@ with open('./data/PC_ICP_output7.txt', mode = 'r') as f:
         print()
 
 
+def getTransformation(vec3):
+    T = np.array([  [ np.cos(vec3[2]), -np.sin(vec3[2]), vec3[0] ],
+                    [ np.sin(vec3[2]),  np.cos(vec3[2]), vec3[1] ],
+                    [ 0,                0,              1       ] ])
+    return T
+
+
+def computeTransform(points, transf):
+    for i in points:
+        # print(i)
+        T = getTransformation(transf)
+        temp = T[0:2,0:2] * i  + T[2, 0:2]
+        print(temp)
+    return temp
+
+
+tt  = computeTransform([[1,1]] , [1,1,0.34])
+print (tt)
+
 for i in range(1,200):
     all_positions_x[i] = all_positions_x[i-1] + all_2D_transformations[i-1][0]
     all_positions_y[i] = all_positions_y[i-1] + all_2D_transformations[i-1][1]
 
+
 print(all_positions_y)
 
-plt.plot(all_positions_x, all_positions_y)
+plt.plot(all_positions_x, all_positions_y, '.')
 plt.show()
