@@ -27,10 +27,10 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
                 num += str(i)
             elif( str(i) == ',' ):
                 #print(num)
-                if(ctt_line == 185):
+                if(ctt_line == 0):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 187):
+                elif(ctt_line == 3):
                     scan_end[idx_scan_end] = float(num)
                     idx_scan_end+=1                
                 num=""
@@ -40,11 +40,11 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
 print(ctt_line)
 
 def convert_scan_to_cartesian(scan):
-    conversionToCentimeters = 1
+    conversionToCentimeters = .1
     for i in range(0,360):
         rad = i * PI / 180
-        COORDINATES_X[i] = scan[i] * m.cos(rad)
-        COORDINATES_Y[i] = scan[i] * m.sin(rad) 
+        COORDINATES_X[i] = scan[i] * m.cos(rad) * conversionToCentimeters
+        COORDINATES_Y[i] = scan[i] * m.sin(rad) * conversionToCentimeters
 
     return COORDINATES_X, COORDINATES_Y
 
@@ -121,8 +121,8 @@ if __name__ == '__main__':
     ax2 = plt.axes()
     for i in range(0, len(x)):
         ax2.arrow(0,0, x[i], y[i])
-    plt.xlim(-3000, 3500)
-    plt.ylim(-3000, 3500)
+    plt.xlim(-350, 300)
+    plt.ylim(-350, 300)
     
     plt.figure(4)
     plt.stem(axis_x,scan_end )

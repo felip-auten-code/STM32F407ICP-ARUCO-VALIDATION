@@ -18,7 +18,7 @@
 #define SCAN_SIZE 360                   /* 360 * 2 = 720 (double)*/
 const int TEST_DIMENSION =2;
 const int TEST_SIZE = 360;
-double PI = 3.1415;
+const double PI = 3.1415;
 
 /*      INFOS ON INPUT
 
@@ -200,7 +200,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences(Eigen::Matrix<double, Dynamic
 
 double DistancePtP(Eigen::Vector2d p, Eigen::Vector2d q){
     Eigen::Vector2d d = q - p;
-    return (d.dot(d));
+    return sqrt(d.dot(d));
 }
 
 // most updated
@@ -212,7 +212,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 5.5;
+    double acceptance_level = 1120.5;
     for (int i =0; i < PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
@@ -241,7 +241,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 
         if(minDIST == 9999){
             minDIST = 9999;
-            std::cout << "FODEU " << dist << "\t" << p1 << "\t" << q << std::endl;
+            //std::cout << "FODEU " << dist << "\t" << p1 << "\t" << q << std::endl;
             //break;
         }
         
@@ -309,10 +309,10 @@ Eigen::Matrix<double,1,2> CenterOfMass( Eigen::MatrixXd PtCld){
     for (int i = 0; i < PtCld.rows(); i++){
         xU += PtCld(i,0);
         yU += PtCld(i,1);
-
+        ct++;
     }
-    xU =  xU /  PtCld.rows();
-    yU =  yU /  PtCld.rows();
+    xU =  xU /  ct;
+    yU =  yU /  ct;
     Eigen::Matrix<double,1,2> r ;
     r << xU, yU;
     //r(0) = xU;
@@ -403,38 +403,21 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 //    double prev_err=0, new_err=0;
     double err = 0;
     transf.setZero();
-    //transf.block<1,2>(0,0) = CenterOfMass(tgt) - CenterOfMass(org);
-
-    //correspondences = FindCorrenpondences(org, tgt);        // corr. antes do palplite por centroide
-
-    //prev_err = getError(org,tgt, correspondences);          // erro antes do palpite inicial
+    A.setZero();
+    b.setZero();
 
 
-    // centroid_p = CenterOfMass(org);
-    // centroid_q = CenterOfMass(tgt);
-    // translation = centroid_q - centroid_p;    // translação levando em conta o centroide das duas nuvens
-    // transf.block<1,2>(0,0) = translation;
-
-
-    //std::cout << "translation before: \t" << translation << "\n";
-    //org = computeTransform(org, transf);                    // initial guess
-
-    //correspondences = FindCorrenpondences_PtP(org, tgt);        // correspondencias
-    correspondences = FindCorrenpondences_PtP(org, tgt);
+    //correspondences = FindCorrenpondences_PtP(org, tgt);                      // correspondencias
+    correspondences = FindCorrenpondences_PtP(org, tgt);                        // ENCONTRAR
     //std::cout << "corr:\n" << correspondences << std::endl;
-    //n_corr = FilterCorr(org, tgt, correspondences);
-    n_corr = correspondences;
-    //err = getError(org, tgt, correspondences);              // erro após a transformação inicial
-    //std::cout << "NEWW _ corr:\n" << n_corr << std::endl;
+
+
     int index_system=0;
-    for( int i=0; i < n_corr.rows(); i++){
+    for( int i=0; i < correspondences.rows(); i++){
 
-        int s  = n_corr(i,0);
-        int s2 = n_corr(i,1);
+        int s  = correspondences(i,0);
+        int s2 = correspondences(i,1);
 
-//        covariance.conservativeResize(i*2 +2, 2);
-//        A.conservativeResize(i*2 +2, 3);                // remove
-//        b.conservativeResize(i*2 +2, 1);                // remove
 
         if(s!=-1){																							// if not dropped correspondences
 
@@ -449,39 +432,27 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 			b.row(2*index_system)      <<  tgt(s2,0) - org(s,0);           //  b = | q_x - p_x |
 			b.row(2*index_system +1)   <<  tgt(s2,1) - org(s,1);           //      | q_q - p_y |
 			index_system++;
+
+
         }
-        // else{
-        //     A.row(2*index_system)      <<  0,0,0;                //  A = | 1    0   -p_y |
-		// 	A.row(2*index_system +1)   <<  0,0,0;                   //      | 0    1    p_x |
-
-		// 	b.row(2*index_system)      <<  0;                       //  b = | q_x - p_x |
-		// 	b.row(2*index_system +1)   <<  0;                       //      | q_q - p_y |
-		// 	index_system++;
-        // }
-
     }
 
 
 
-
-    //translation = CenterOfMass(tgt) - CenterOfMass(org);
-
-    //out = A.jacobiSvd(ComputeFullU | ComputeFullV).solve(b);
+    //out = A.jacobiSvd(ComputeFullU | ComputeFullV).solve(b);                          // ALTERNATIVE
 
     out = (A.transpose() * A).ldlt().solve(A.transpose() * b);
 
-    //out.block<1,2>(0,0)
 
-    //out.block<1,2>(0,0) << 0,0;
-    tt = getTransformation(0, 0, out(0,2));
+    tt = getTransformation(0, 0, out(0,2));                                                     // Rotação estimada nessa iteração do ICP
 
-    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();         // Translation = Cq - R.Cp
+    centroid_p = CenterOfMass(org);                                                             // Computa-se os centros de massa 
+    centroid_q = CenterOfMass(tgt);                                                             // p/ atualizar translação
 
-    //translationR = out.block<1,2>(0,0).transpose() - tt.block<2,2>(0,0) * out.block<1,2>(0,0).transpose();
+    translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();        // Translation = Cq - R.Cp
 
-    //new_err = getError(org, tgt, correspondences);
-    out.block<1,2>(0,0) = translationR;
-    //out.block<1,2>(0,0) << tx, ty;
+    out.block<1,2>(0,0) = translationR.transpose();
+
 
 
     //std::cout << "MASS A: \t" << centroid_p << "\n";
@@ -601,7 +572,8 @@ Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> f_scan_i_ToEigenMatrix(double*
 
 
 	for ( int i=0 ; i< size_scan ; i++){
-		ang = i * PI * (0.01745);        // convertion to radians
+		ang = i * PI / 180;        // convertion to radians
+        //ang = i;
 //		coordinates[i][0] =  scan_ranges[i] * cos(ang);
 //		coordinates[i][1] =  scan_ranges[i] * sin(ang);
 		out(i,0) = double(scan_ranges[i] * cos(ang))  * conversionToCentimeter;
@@ -793,11 +765,12 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;                                    // Centros de massa
     Eigen::Matrix<int, Dynamic, 2> CORR;                                                        // Guarda Correspondencias
     Eigen::Matrix<double, 3, 3> HOM;
+    Eigen::Matrix<double, 1, 3> prev_cummulative;
     // INICIALIZAÇAO
-    cumulative.setZero();                       // ZEROS   
-    transf.setZero();                           // ZEROS
-    true_transform << 0.25, 10.4, -0.584;       // Somente para teste unitário
-    transformed_points = target_points;         // used variable = transformed_points
+    cumulative.setZero();                           // ZEROS   
+    transf.setZero();                               // ZEROS
+    //true_transform << 0.25, 10.4, -0.584;         // Somente para teste unitário
+    transformed_points = target_points;             // used variable = transformed_points
 
 
  
@@ -806,25 +779,34 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
 
     transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
     updt_p = computeTransform(source_points, transf);
-    double err = 0., n_err = 0., diff =0., previous_err = 0.;
+    double err = 0., n_err = 0., diff = 0., previous_err = 0.;
     translation = transf;
-    centroid_b = CenterOfMass(transformed_points);
+    //centroid_b = CenterOfMass(transformed_points);
 
 
     for (int i =0; i < 100; i++){
-        std::cout << updt_p << "\n";
+        
         CORR = FindCorrenpondences_PtP(updt_p, transformed_points);
         //n_err = getError(updt_p, transformed_points, CORR);
         
-        //std::cout  <<  "error: \t" << "\n";
+        
         icp_transform = ICP(updt_p, transformed_points, 100, 0.005);
-        //std::cout  <<  "error: \t" << "\n";
      
 
-
-        //cumulative += icp_transform;
         updt_p = computeTransform(updt_p, icp_transform);               // n 
+
         cumulative += icp_transform;
+        if(i > 12 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-15){
+            //std::cout << "error: \t" <<  err << "\n";
+            std::cout << "iteration (outByAngleConversion): \t" <<  i << "\n";
+            break;
+        }
+        prev_cummulative = cumulative;
+
+
+        //cout << "It: " << i << "\tT(i): " <<  icp_transform(0,0) << " " << icp_transform(0,1) << " " << icp_transform(0,2) << "\t";
+        //cout << "Soma T(i): " <<  cumulative(0, 2) << "\n";
+
         //std::cout << "error: \t" << "\n";
         //CORR = FindCorrenpondences_PtP(updt_p,transformed_points);
         //err = getError(updt_p, transformed_points, CORR );              // n
@@ -834,7 +816,7 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         err = getError(updt_p, transformed_points, CORR);
         diff = previous_err - err;
         previous_err = err;
-        if(i > 6 && err <= 0.0005){
+        if(i > 36 && err <= 0.0005){
             std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (out): \t" <<  i << "\n";
             break;
@@ -849,12 +831,11 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
 
     //std::cout << "Transformation [i=100]:\n" << cumulative << std::endl;
     //std::cout << "Transformation INITIAL [i=100]:\n" << transf << std::endl;
-    std::cout << "Translation FINAL ICP:\n" << final_transform << std::endl;
+    //std::cout << "Translation FINAL ICP:\n" << final_transform << std::endl;
 
-    transf << cumulative(0,0)/2, cumulative(0,1)*cos(cumulative(0,2)), cumulative(0,2);
     //std::cout << "Transformation FUKET [i=100]:\n" << transf << std::endl;
     //std::cout << "origin: \n" << source_points << "\n";
-    source_points = computeTransform(source_points, cumulative);
+    //source_points = computeTransform(source_points, cumulative);
     //std::cout << "output: \n" << updt_p << "\n";
     //std::cout << "target: \n" << transformed_points << "\n";
     return final_transform;
@@ -874,22 +855,86 @@ int main(){
 
     f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
     //print_vec(f_scans[45], TEST_SIZE);
-    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>  org, tgt;
-    Eigen::Matrix<double, 1, 3> trans_steps;
-    ofstream outFile("./data/PC_ICP_output5.txt");
-    for (int i = 0; i < size_samples - 3; i+=3){
-        org << f_scan_i_ToEigenMatrix(f_scans[i], TEST_SIZE);
-        tgt << f_scan_i_ToEigenMatrix(f_scans[i+3], TEST_SIZE);
+    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>       org, tgt, auxFrame1, auxFrame2, auxFrame3, temp;              
+    Eigen::Matrix<double, 1, 3>                             trans_steps, final;
+    Eigen::Matrix<int, Dynamic, 2>                          CORR_aux;
+    Eigen::Matrix<double, 1, 2>                             centroid_a, centroid_b, centroid_c, centroid_d;
+    
+    ofstream outFile("./data/PC_ICP_output7.txt");
+
+    int interval = 6;                                       // comparar com frames diferentes para detectar movimento
+
+    for (int i = 0; i < size_samples - interval; i += interval){
+
+        org     <<  f_scan_i_ToEigenMatrix(f_scans[ i ]         , TEST_SIZE);
+        tgt     <<  f_scan_i_ToEigenMatrix(f_scans[i+interval]  , TEST_SIZE);
+
         //std::cout << tgt << std::endl;
         //print_vec(f_scans[i], TEST_SIZE);
         //std::cout << org << std::endl;
         //Sleep(2000);
         //std::cout << f_scans[i] << std::endl;
-        trans_steps = main_ICP(org, tgt);
-        std::cout << trans_steps << std::endl;
-        outFile << trans_steps << std::endl;
+
+
+        trans_steps = main_ICP(org, tgt);                                               // 
+
+
+        // CENTER OF MASS CHECK
+        centroid_a = CenterOfMass(org);
+        centroid_b = CenterOfMass(tgt); 
+
+        final(0,2)      = trans_steps(0,2);                                     // Get Rotation from Least Squares
+        temp            = computeTransform(org, final);                         // Aply rotation
+        centroid_c      = CenterOfMass(temp);                                   // New center of mass of the rotated frame
+
+
+        final.block<1,2>(0,0) = (centroid_b - centroid_a);
+
+        cout << "MASS ORG: " << centroid_a << "\n";
+        cout << "MASS TGT: " << centroid_b << "\n";
+        cout << "MASS TTT: " << centroid_c << "\n";
+
+
+        std::cout   << final << std::endl;
+        outFile     << final << std::endl;
+
+
+        // ONLY FOR TESTING DATA  (BASIC THINGS)
+        if(i == interval * 7){
+            auxFrame1 = org;
+            auxFrame2 = tgt;
+            CORR_aux = FindCorrenpondences_PtP(org, tgt);
+            auxFrame3 = computeTransform(org, final);
+            break;
+        }
+
     }
     outFile.close();
+
+    // GENERATE FILE TO CHECK IF CONVERSION TO 2D IS OK
+    ofstream cartesian_conv("./data/CheckConversionToCartesian.txt");
+    cartesian_conv << auxFrame1;
+    cartesian_conv.close();
+    // GENERATE FILE TO CHECK IF STRING TO FLOAT CONVERSION IS OK
+    ofstream check_ranges("./data/CheckRanges.txt");
+    int frameSelec = 35;
+    for (int i =0; i< TEST_SIZE; i++){
+        check_ranges << f_scans[frameSelec][i] << ',';
+    }
+    check_ranges.close();
+    // GENERATE FILE TO CHECK THE TWO FRAMES COMPARED
+    ofstream check_compare("./data/SecondFrame.txt");
+    check_compare << auxFrame2 ;
+    check_compare.close();
+    // GENERATE FILE TO CHECK THE TWO FRAMES COMPARED
+    ofstream check_compare2("./data/TransformedFrame.txt");
+    check_compare2 << auxFrame3 ;
+    check_compare2.close();
+    // INVESTIGATE CORERSPONDENCES
+    ofstream check_compare3("./data/CorrespondencesInitial.txt");
+    check_compare3 << CORR_aux ;
+    check_compare3.close();    
+
 }
 
 
