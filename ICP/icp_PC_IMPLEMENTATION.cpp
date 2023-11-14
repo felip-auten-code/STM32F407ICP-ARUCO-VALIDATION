@@ -213,7 +213,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 2.5;
+    double acceptance_level = 9.2;
     for (int i =0; i < PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
@@ -914,7 +914,7 @@ int main(){
         centroid_c      = CenterOfMass(temp);                                   // New center of mass of the rotated frame
 
 
-        final.block<1,2>(0,0)  =   (centroid_b - centroid_c) ;
+        final.block<1,2>(0,0)  =   (centroid_b - centroid_a) ;
 
         time_t time_taken = double(end - start);
         //cout << "MASS ORG: "        << centroid_a                       << "\n";
@@ -923,16 +923,16 @@ int main(){
         cout << "FRAME: "               << i                                    << "\n";
 
         // trans_steps.block<1,2>(0,0) *= 2;
-        std::cout   << trans_steps << std::endl;
-        outFile     << trans_steps << std::endl;
+        std::cout   << final << std::endl;
+        outFile     << final << std::endl;
 
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 15){
+        if(i == interval * 12){
             auxFrame1   = org;
             auxFrame2   = tgt;
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
-            auxFrame3   = computeTransform(org, trans_steps);
+            auxFrame3   = computeTransform(org, final);
             //break;
         }
 
@@ -970,6 +970,88 @@ int main(){
     
 
 }
+
+
+// #define N 360
+// #define T topRightCorner(2, 1) // Translation Matrix
+// #define R topLeftCorner(2, 2)  //Rotation Matrix
+
+
+// void icpKabsch(MatrixXd& previous, MatrixXd& current, Matrix3d& H)
+// {
+
+//   auto centroid_previous    = previous.rowwise().mean();
+//   auto centroid_current     = current.rowwise().mean();
+
+//   H.T = -centroid_previous;
+//   MatrixXd center_previous = previous + H.T.replicate(1, N);
+//   H.T = -centroid_current;
+//   MatrixXd center_current = current + H.T.replicate(1, N);
+
+//   MatrixXd cov = center_previous * center_current.transpose();
+
+//   JacobiSVD<MatrixXd> svd(cov, ComputeFullU | ComputeFullV);
+//   double d = (svd.matrixV() * svd.matrixU().transpose()).determinant();
+
+//   if (d > 0) d = 1.0;
+//   else d = -1.0;
+
+//   Matrix2d I = Matrix2d::Identity();
+//   I(1, 1) = d;
+
+//   H.R = svd.matrixV() * I *svd.matrixU().transpose();
+//   H.T = centroid_current  - (H.R * centroid_previous);
+
+//   previous = H.R * previous + H.T.replicate(1, N);
+//   cout << "H\n" << H << endl;
+//   cout <<"Previous:\n" << previous << endl;
+
+//   cout << "Final Angle:\n" << atan2(H(1,0), H(0,0)) << endl;
+//   cout << "Final Translation:\n" << H.T << endl;
+// }
+
+
+
+// PROOF TEST
+
+// int main()
+// {
+//     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>       org, tgt, auxFrame1, auxFrame2, auxFrame3, temp;  
+//     Matrix3d H = Matrix3d::Identity();
+
+
+//     //int size_samples = 100;
+//     //double** f_scans= (double**)malloc(100 * sizeof(double*));
+//     time_t start, end; 
+
+//     for (int i =0; i< size_samples; i++){
+//         f_scans[i] = (double*)malloc(TEST_SIZE * sizeof(double));
+//     }
+
+//     f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
+//     //print_vec(f_scans[45], TEST_SIZE);
+
+//     MatrixXd previousMatrix(2, N);
+
+    
+//     double theta = 0.0534; //5 deg
+//     H.R << cos(theta), -sin(theta),
+//              sin(theta),  cos(theta);
+//     H.T << 0.3, 0.2;
+
+//     MatrixXd currentMatrix(2, N);
+
+//     org << f_scan_i_ToEigenMatrix(f_scans[8 * 12], N);
+//     tgt << f_scan_i_ToEigenMatrix(f_scans[8 * 13], N);
+
+//     //previousMatrix = org.transpose();
+//    //reset H
+//     H = Matrix3d::Identity();
+//     icpKabsch(previousMatrix, currentMatrix, H);
+
+//     return 0;
+// }
+
 
 
 // int main(){

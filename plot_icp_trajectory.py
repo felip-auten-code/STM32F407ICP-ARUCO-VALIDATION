@@ -61,8 +61,8 @@ tt  = computeTransform([[1,1]] , [1,1,0.34])
 print (tt)
 
 for i in range(1,200):
-    all_positions_x[i] = all_positions_x[i-1] + all_2D_transformations[i-1][0]
-    all_positions_y[i] = all_positions_y[i-1] + all_2D_transformations[i-1][1]
+    all_positions_x[i] = all_positions_x[i-1] + all_2D_transformations[i-1][0]  
+    all_positions_y[i] = all_positions_y[i-1] + all_2D_transformations[i-1][1]  
 
 
 print(all_positions_y)
