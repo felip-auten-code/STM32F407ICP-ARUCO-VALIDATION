@@ -893,9 +893,9 @@ int main(){
     
     final.setZero();
     position.setZero();
-    ofstream outFile("./data/PC_ICP_output7.txt");
-    ofstream outPos("./data/OutPositions.txt");
-    int interval = 4;                                       // comparar com frames diferentes para detectar movimento
+    ofstream outFile("./data/PC_ICP_output8.txt");
+    ofstream outPos("./data/OutPositions2.txt");
+    int interval = 8;                                       // comparar com frames diferentes para detectar movimento
 
     for (int i = 0; i < size_samples - interval; i += interval){
 
@@ -930,7 +930,8 @@ int main(){
         cout    << "TIME: "                << time_taken << std::setprecision(5)        << "\n";
         cout    << "FRAME: "               << i                                         << "\n";
 
-        // trans_steps.block<1,2>(0,0) *= 2;
+        //trans_steps.block<1,2>(0,0) += final.block<1,2>(0,0) ;
+
         std::cout   << trans_steps << std::endl;
         outFile     << trans_steps << std::endl;
 
@@ -941,12 +942,12 @@ int main(){
         outPos << position << endl;
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 20){
+        if(i == interval * 12){
             auxFrame1   = org;
             auxFrame2   = tgt;
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
             auxFrame3   = computeTransform(org, trans_steps);
-            //break;
+            break;
         }
 
     }
