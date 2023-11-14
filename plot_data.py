@@ -3,7 +3,7 @@ import matplotlib
 import math as m
 import numpy as np
 import os
-
+from statistics import mean
 
 matplotlib.rcParams['font.family'] = ['sans-serif']
 # read file
@@ -27,10 +27,10 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
                 num += str(i)
             elif( str(i) == ',' ):
                 #print(num)
-                if(ctt_line == 0):
+                if(ctt_line == 8*8):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 3):
+                elif(ctt_line == 8*8+8):
                     scan_end[idx_scan_end] = float(num)
                     idx_scan_end+=1                
                 num=""
@@ -103,8 +103,12 @@ if __name__ == '__main__':
     x, y = convert_scan_to_cartesian(scan)
     fig, ax = plt.subplots(figsize = (10, 7))
     ax.scatter(x, y, label='Escaneamento inicial $(k=0)$', s=10)
+    ax.scatter(mean(x), mean(y))
     x1, y1 = convert_scan_to_cartesian(scan_end)
     ax.scatter(x1,y1, color='tab:orange', label='Escaneamento final $(k=153)$', s=10)
+
+    ax.scatter(mean(x1), mean(y1))
+
 
     ax.set_title('POINT CLOUD DATA')
     ax.set_ylabel('Eixo Y [mm]')
@@ -120,7 +124,8 @@ if __name__ == '__main__':
     
     ax2 = plt.axes()
     for i in range(0, len(x)):
-        ax2.arrow(0,0, x[i], y[i])
+        ax2.arrow(0,0, x[i] , y[i])
+        ax2.arrow(0,0, x1[i], y1[i])
     plt.xlim(-350, 300)
     plt.ylim(-350, 300)
     

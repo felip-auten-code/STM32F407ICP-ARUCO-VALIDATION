@@ -213,7 +213,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 2.5;
+    double acceptance_level = 7.5;
     for (int i =0; i < PCL_o.rows(); i++){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
@@ -365,13 +365,14 @@ Eigen::Matrix<double, Dynamic, 2> computeTransformPoint( Eigen::Matrix<double, D
 
 double getError(Eigen::Matrix<double, Dynamic, 2> org, Eigen::Matrix<double, Dynamic, 2> tgt, Eigen::Matrix<int, Dynamic, 2> correspondences){
     double err=0;
+    int ct=0;
     for(int i=0; i < correspondences.rows(); i++){
         int s = correspondences(i,0);
         int s2 = correspondences(i,1);
-        if(s != -1) err += sqrt( pow(tgt(s2,0) - org(s,0), 2) + pow(tgt(s2,1) - org(s,1), 2)); 
+        if(s != -1) err += sqrt( pow(tgt(s2,0) - org(s,0), 2) + pow(tgt(s2,1) - org(s,1), 2)); ct++; 
 
     }
-    return err;
+    return err/ct;
 }
 
 Eigen::Matrix<int, Dynamic, 2> FilterCorr(Eigen::Matrix<double, Dynamic, 2> org, Eigen::Matrix<double, Dynamic, 2> tgt, Eigen::Matrix<int, Dynamic, 2> correspondences){
@@ -463,6 +464,8 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
     centroid_q = CenterOfMass(tgt);                                                             // p/ atualizar translação
 
     translationR = centroid_q.transpose() - tt.block<2,2>(0,0) * centroid_p.transpose();        // Translation = Cq - R.Cp
+
+    translationR = out.block<1,2>(0,0);  // testing
 
     out.block<1,2>(0,0) = translationR.transpose();
 
@@ -801,12 +804,12 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         //n_err = getError(updt_p, target_points, CORR);
         
         
-        icp_transform = ICP(updt_p, target_points, 100, 0.005);
-        updt_p = computeTransform(updt_p, icp_transform);                               // update
+        icp_transform   = ICP(updt_p, target_points, 100, 0.005);
+        updt_p          = computeTransform(updt_p, icp_transform);                               // update
 
         cumulative += icp_transform;
 
-        if(i > 6 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-16){
+        if(i > 6 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-14){
             //std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (outByAngleConversion): \t" <<  i << "\n";
             break;
@@ -827,6 +830,7 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         err                 = getError(updt_p, target_points, CORR);
         diff                = previous_err - err;
         previous_err        = err;
+        std::cout << "error: \t" << err << "\n";
         if(i > 36 && err <= 0.0005){
             std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (out): \t" <<  i << "\n";
@@ -842,6 +846,10 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     rot_points          = computeTransform(source_points, final_transform);
     
     final_transform.block<1,2>(0,0) = CenterOfMass(target_points) - CenterOfMass(rot_points);
+
+    final_transform = cumulative;               // tsting
+
+    std::cout << "Last error: \t" << err << "\n";
 
     //std::cout << "Transformation [i=100]:\n" << cumulative << std::endl;
     //std::cout << "Transformation INITIAL [i=100]:\n" << transf << std::endl;
@@ -877,17 +885,17 @@ int main(){
     f_scans = fileToDistances("./data/scanLASTEST01.txt", size_samples, f_scans);
     //print_vec(f_scans[45], TEST_SIZE);
 
-    Eigen::Vector2d                                         position;
+    Eigen::Matrix<double, 1, 2>                             position;
     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION>       org, tgt, auxFrame1, auxFrame2, auxFrame3, temp;              
-    Eigen::Matrix<double, 1, 3>                             trans_steps, final;
+    Eigen::Matrix<double, 1, 3>                             trans_steps, final, t_aux;
     Eigen::Matrix<int, Dynamic, 2>                          CORR_aux;
     Eigen::Matrix<double, 1, 2>                             centroid_a, centroid_b, centroid_c, centroid_d;
     
     final.setZero();
     position.setZero();
     ofstream outFile("./data/PC_ICP_output7.txt");
-
-    int interval = 8;                                       // comparar com frames diferentes para detectar movimento
+    ofstream outPos("./data/OutPositions.txt");
+    int interval = 4;                                       // comparar com frames diferentes para detectar movimento
 
     for (int i = 0; i < size_samples - interval; i += interval){
 
@@ -919,16 +927,21 @@ int main(){
         time_t time_taken = double(end - start);
         //cout << "MASS ORG: "        << centroid_a                       << "\n";
         //cout << "MASS TTT: "        << centroid_c                       << "\n";
-        cout << "TIME: "                << time_taken << std::setprecision(5)        << "\n";
-        cout << "FRAME: "               << i                                    << "\n";
+        cout    << "TIME: "                << time_taken << std::setprecision(5)        << "\n";
+        cout    << "FRAME: "               << i                                         << "\n";
 
         // trans_steps.block<1,2>(0,0) *= 2;
         std::cout   << trans_steps << std::endl;
         outFile     << trans_steps << std::endl;
 
+        // t_aux.setZero();
+        // t_aux.block<1,2>(0,0) = trans_steps.block<1,2>(0,0);
+
+        position = computeTransform (position, trans_steps);
+        outPos << position << endl;
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 15){
+        if(i == interval * 20){
             auxFrame1   = org;
             auxFrame2   = tgt;
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
@@ -937,6 +950,7 @@ int main(){
         }
 
     }
+    outPos.close();
     outFile.close();
 
     // GENERATE FILE TO CHECK IF CONVERSION TO 2D IS OK

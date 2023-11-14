@@ -3,6 +3,7 @@ import matplotlib
 import math as m
 import numpy as np
 import os
+from statistics import mean
 
 
 matplotlib.rcParams['font.family'] = ['sans-serif']
@@ -17,6 +18,9 @@ y1 =[]
 
 xT =[]
 yT = []
+
+xU =[]
+yU =[]
 
 
 ranges = []
@@ -48,6 +52,22 @@ with open("./data/TransformedFrame.txt", mode = 'r') as f:
                     xx = 0
                 elif(yy):
                     yT.append(float(coord))
+                    yy = 0
+                    xx = 1
+        
+
+with open("./data/UpdatedFrame.txt", mode = 'r') as f:
+    for line in f:
+        xx = 1
+        yy = 0
+        for coord in line.split(' '):
+            if(coord != ''):
+                if(xx):
+                    xU.append(float(coord)*-1);    
+                    yy = 1
+                    xx = 0
+                elif(yy):
+                    yU.append(float(coord))
                     yy = 0
                     xx = 1
         
@@ -106,12 +126,10 @@ plt.figure(1)
 plt.plot(x, y, '.', label = "Frame Anterior")
 plt.plot(x1, y1, '.', label = "Frame Atual")
 plt.plot(xT, yT, '.', label = "Após transformação aplicada pelo ICP")
+plt.plot(xU, yU, '.', label = "Após transformação aplicada pelo ICP 2")
 plt.legend()
 
-cx ,cy = centroid(cloud_1)
-plt.plot(cx, cy, '.')
-cx2 ,cy2 = centroid(cloud_2)
-plt.plot(cx2, cy2, '.')
+
 
 
 plt.figure(2)
