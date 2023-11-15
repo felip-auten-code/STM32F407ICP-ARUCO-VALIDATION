@@ -147,7 +147,7 @@ def pose_esitmation(frame, aruco_dict, matrix_coefficients, distortion_coefficie
                 cv2.putText(frame, tvec_str2, (15,200), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, cv2.LINE_AA)
                 #cv2.line(frame, (int(real_O_tvec2[0])*10, int(real_O_tvec2[1])*10), (int(t[0]), int(t[1])), (0,0,255), 70)
                 
-                tvecs.extend([ids[i][0] , REAL_vec[0], REAL_vec[1], REAL_vec[2] ,  frameID])          
+                tvecs.extend([ids[i][0] , REAL_vec[0][0], REAL_vec[1][0], REAL_vec[2][0] ,  frameID])          
                 rvecs.extend([ids[i][0] , Rx , Ry , Rz ,  frameID])      
             
                 xg = REAL_vec[0][0]

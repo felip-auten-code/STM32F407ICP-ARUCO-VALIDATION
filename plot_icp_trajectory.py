@@ -3,6 +3,7 @@ import matplotlib
 import math as m
 import numpy as np
 import os
+import pandas as pd
 
 start_position = [0, 0]
 start_orientation = [0]
@@ -61,11 +62,14 @@ tt  = computeTransform([[1,1]] , [1,1,0.34])
 print (tt)
 
 for i in range(1,200):
-    all_positions_x[i] = all_positions_x[i-1] + all_2D_transformations[i-1][0]  
-    all_positions_y[i] = all_positions_y[i-1] + all_2D_transformations[i-1][1]  
+    all_positions_x[i] = all_positions_x[i-1] + all_2D_transformations[i-1][0] 
+    all_positions_y[i] = all_positions_y[i-1] + all_2D_transformations[i-1][1] 
 
 
-print(all_positions_y)
+Points2d = pd.read_table("./data/OutPositions.txt", sep = " ")
+print(Points2d.head())
 
-plt.plot(all_positions_x, all_positions_y, '.')
+plt.plot(Points2d["x"], Points2d["y"])
+plt.plot(all_positions_x, all_positions_y)
+
 plt.show()
