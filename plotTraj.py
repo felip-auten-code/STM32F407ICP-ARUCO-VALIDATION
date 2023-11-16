@@ -4,7 +4,7 @@ import pandas as pd
 
 Data = pd.read_csv("./data/TvecsARUCO.csv")                                 # ARUCO DATA
 
-ICP_Points = pd.read_table("./data/OutPositions.txt", sep = " ")            # ICP trajectory
+ICP_Points = pd.read_table("./data/OutPositions2.txt", sep = " ")            # ICP trajectory
 
 
 Data = Data[1:]

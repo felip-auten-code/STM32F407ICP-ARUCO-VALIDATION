@@ -200,37 +200,43 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences(Eigen::Matrix<double, Dynamic
 
 double DistancePtP(Eigen::Vector2d p, Eigen::Vector2d q){
     Eigen::Vector2d d = q - p;
-    //return sqrt(d.dot(d));
-    return mod2d(d);
+    return sqrt(d.dot(d));
+    //return mod2d(d);
 }
 
 // most updated
 Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dynamic, 2> PCL_o, Eigen::Matrix<double, Dynamic, 2> PCL_target){
 //	const size = PCL_o.lines();
     Eigen::Matrix<int, TEST_SIZE, 2> corr;
-    //corr.resize(0,0);
+    Eigen::Vector2d q;
+    Eigen::Vector2d p1;
+    corr.setConstant(-1);
     //corr = {};
     int count = 0;
     double dists[TEST_SIZE] = {0}, sum_dists =0, med_dists, std_dev_dists, variance_dists, var1;
     // iterate over pcl_o
-    double acceptance_level = 7.5;
-    for (int i =0; i < PCL_o.rows(); i++){
+    double acceptance_level = 15.5, accept_dist = 0.001;
+    double minDIST = 9999, dist = 9999;
+    int closestPointIndex = -1;
+    for (int i =0; i < PCL_o.rows(); i+=3){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
-        double minDIST = 9999, dist = 9999;
-        int closestPointIndex = -1;
-        Eigen::Vector2d q= {PCL_o(i,0), PCL_o(i,1)};
+        minDIST = 9999;
+        dist = 9999;
+        closestPointIndex = -1;
+        q= PCL_o.row(i);
         //Eigen::Vector2d q_aux= {PCL_o(i-1,0), PCL_o(i-1,1)};
-        Eigen::Vector2d p1;
+        
         for (int j = 0; j < PCL_target.rows() ; j++){
-            p1= {PCL_target(j,0), PCL_target(j,1)};
+            p1= PCL_target.row(j);
 
             dist = DistancePtP(p1, q);
 
-            if(dist < minDIST){                     // nooo zeros  to test
+            if(dist < minDIST){                             // nooo zeros  to test
                 minDIST = dist;
-                closestPointIndex = j;              // alinha direita
+                closestPointIndex = j;                      // alinha direita
+                if(minDIST < accept_dist) break;            // sai do loop se a distancia for aceitável
             }
         }
 
@@ -240,12 +246,13 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
 
         if(minDIST == 9999){
             minDIST = 9999;
-            //std::cout << "FODEU " << dist << "\t" << p1 << "\t" << q << std::endl;
+            std::cout << "FODEU " << dist << "\t" << p1 << "\t" << q << std::endl;
             //break;
         }
         
         // Implementar alguma abordagem para remover os pontos que possuem distancias grandes entre indices consecutivos
         // ELIMINATE PAIR BY THE GIVEN THRESHOLD (acceptance_level)
+
         if(minDIST < acceptance_level){												        // try to eliminate pairs with error
 			corr.row(count) << i, closestPointIndex;
 			count++;
@@ -365,10 +372,10 @@ Eigen::Matrix<double, Dynamic, 2> computeTransformPoint( Eigen::Matrix<double, D
 
 double getError(Eigen::Matrix<double, Dynamic, 2> org, Eigen::Matrix<double, Dynamic, 2> tgt, Eigen::Matrix<int, Dynamic, 2> correspondences){
     double err=0;
-    int ct=0;
+    int ct=0, s, s2;
     for(int i=0; i < correspondences.rows(); i++){
-        int s = correspondences(i,0);
-        int s2 = correspondences(i,1);
+        s = correspondences(i,0);
+        s2 = correspondences(i,1);
         if(s != -1) err += sqrt( pow(tgt(s2,0) - org(s,0), 2) + pow(tgt(s2,1) - org(s,1), 2)); ct++; 
 
     }
@@ -405,25 +412,27 @@ Eigen::Matrix<int, Dynamic, 2> FilterCorr(Eigen::Matrix<double, Dynamic, 2> org,
 Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
                                 Eigen::Matrix<double, Dynamic, 2> tgt,
                                 int MAX_ITERATIONS,
-                                double TOLERANCE = 5e-3){
+                                double* error){
 
-    Eigen::Matrix<double,1,3> 				out, transf;                  						    // update  de paramentros da transformação
-    Eigen::Matrix<double,1,2> 				translation, translationR, centroid_p, centroid_q;      // palpite inicial
+    Eigen::Matrix<double, 1, 3> 			out, transf;                  						    // update  de paramentros da transformação
+    Eigen::Matrix<double, 1, 2> 			translation, translationR, centroid_p, centroid_q;      // palpite inicial
     Eigen::Matrix<double, 3, 3> 			tt;                                                     // transformação
-    Eigen::Matrix<int, Dynamic, 2> 			correspondences, n_corr;         						// correspondencias - DECLARE STATIC
+    Eigen::Matrix<int   , Dynamic, 2> 		correspondences, n_corr;         						// correspondencias - DECLARE STATIC
     Eigen::Matrix<double, Dynamic, 2> 		covariance;                                             // not used
     Eigen::Matrix<double, TEST_SIZE*2, 3> 	A;                    									// Matriz A         - DECLARE STATIC
     Eigen::Matrix<double, TEST_SIZE*2, 1> 	b;                    									// Matriz b         - DECLARE STATIC
 //    double prev_err=0, new_err=0;
-    double err = 0;
+    double err = 0.;
     transf.setZero();
     A.setZero();
     b.setZero();
 
 
     //correspondences = FindCorrenpondences_PtP(org, tgt);                      // correspondencias
+    //auto started = std::chrono::high_resolution_clock::now();
     correspondences = FindCorrenpondences_PtP(org, tgt);                        // ENCONTRAR
-    //std::cout << "corr:\n" << correspondences << std::endl;
+    //auto done = std::chrono::high_resolution_clock::now();
+    //std::cout << "Time CORR: " << std::chrono::duration_cast<std::chrono::milliseconds>(done-started).count() << std::endl;
 
 
     int index_system=0;
@@ -455,6 +464,7 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 
     //out = A.jacobiSvd(ComputeFullU | ComputeFullV).solve(b);                                  // ALTERNATIVE
 
+    
     out = (A.transpose() * A).ldlt().solve(A.transpose() * b);
 
 
@@ -471,7 +481,9 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 
 
 
-    //std::cout << "MASS A: \t" << centroid_p << "\n";
+    err = getError(org, tgt, correspondences); 
+    *error = err;
+    std::cout << "error it: \t" << err << "\n";
     //std::cout << "MASS B: \t" << centroid_q << "\n";
     //std::cout << "ROT: \n" << tt.block<2,2>(0,0) << "\n";
     //std::cout << "TRNAF: \n" << tt.block<2,2>(0,0) << "\t" << out(0,2) << "\n";
@@ -664,110 +676,110 @@ void EigentoVec(Eigen::MatrixXd eigenM, double** vec, int lin, int col){
     }
 }
 
-int mainCPP(){
+// int mainCPP(){
 
-    //fileToSamplePoints2D("./data/scan001.txt");
-
-
-    // PC TEST
-    //const int TEST_DIMENSION = 2;
-    //const int TEST_SIZE = 60;
-    double error=0;
-    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> source_points, updt_p, rot_points;
-    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> transformed_points;
-    Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points;
-    //source_points = Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION>::Random();
-    source_points = setCornerWnoise(source_points);
-    Eigen::Matrix<double, 1, 3> transf, translation;                                              // palpite inicial
-    Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;
-    Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;
-    Eigen::Matrix<int, Dynamic, 2> CORR;
-    Eigen::Matrix<double, 3, 3> HOM;
-    cumulative.setZero();
-    transf.setZero();
-    true_transform << .52, .75, 0.0134;
-    transformed_points = computeTransform(source_points, true_transform);
-
-    //std::cout << "target: \n"           << transformed_points << "\n";
-    //transformed_points = introduceError(transformed_points, 0.55);
-    //std::cout << "target(noise): \n"           << transformed_points << "\n";
-
-    //transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
-
-    //std::cout << "origin: \n" << source_points << "\n";
-    //std::cout << "target: \n" << transformed_points << "\n";
+//     //fileToSamplePoints2D("./data/scan001.txt");
 
 
+//     // PC TEST
+//     //const int TEST_DIMENSION = 2;
+//     //const int TEST_SIZE = 60;
+//     double error=0;
+//     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> source_points, updt_p, rot_points;
+//     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> transformed_points;
+//     Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points;
+//     //source_points = Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION>::Random();
+//     source_points = setCornerWnoise(source_points);
+//     Eigen::Matrix<double, 1, 3> transf, translation;                                              // palpite inicial
+//     Eigen::Matrix<double, 1, 3> true_transform, icp_transform, cumulative, final_transform;
+//     Eigen::Matrix<double, 1, 2> centroid_a, centroid_b, res;
+//     Eigen::Matrix<int, Dynamic, 2> CORR;
+//     Eigen::Matrix<double, 3, 3> HOM;
+//     cumulative.setZero();
+//     transf.setZero();
+//     true_transform << .52, .75, 0.0134;
+//     transformed_points = computeTransform(source_points, true_transform);
+
+//     //std::cout << "target: \n"           << transformed_points << "\n";
+//     //transformed_points = introduceError(transformed_points, 0.55);
+//     //std::cout << "target(noise): \n"           << transformed_points << "\n";
+
+//     //transf.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(source_points);
+
+//     //std::cout << "origin: \n" << source_points << "\n";
+//     //std::cout << "target: \n" << transformed_points << "\n";
 
 
-    //std::cout << "MASS org:\n" << CenterOfMass(source_points) << std::endl;
-    //std::cout << "MASS tgt:\n" << CenterOfMass(transformed_points) << std::endl;
+
+
+//     //std::cout << "MASS org:\n" << CenterOfMass(source_points) << std::endl;
+//     //std::cout << "MASS tgt:\n" << CenterOfMass(transformed_points) << std::endl;
 
     
-    // INITIAL GUESS
+//     // INITIAL GUESS
 
 
-    updt_p = source_points;                                                             // variavel temporaria recebe scan anterior
+//     updt_p = source_points;                                                             // variavel temporaria recebe scan anterior
 
-    double err = 0, previous_err = 0, diff = 999;
+//     double err = 0, previous_err = 0, diff = 999;
 
-    for (int i =0; i < 100; i++){
-        //std::cout << "error: \t" << "\n";
-        CORR = FindCorrenpondences_PtP(updt_p, transformed_points);                 
-        //n_err = getError(updt_p, transformed_points, CORR );                      // 
+//     for (int i =0; i < 100; i++){
+//         //std::cout << "error: \t" << "\n";
+//         CORR = FindCorrenpondences_PtP(updt_p, transformed_points);                 
+//         //n_err = getError(updt_p, transformed_points, CORR );                      // 
         
-        //std::cout << "error: \t" << "\n";
-        icp_transform = ICP(updt_p, transformed_points, 100, 0.005);
-        //std::cout << "error: \t" << "\n";
+//         //std::cout << "error: \t" << "\n";
+//         icp_transform = ICP(updt_p, transformed_points, 100, 0.005);
+//         //std::cout << "error: \t" << "\n";
      
 
 
-        //cumulative += icp_transform;
-        updt_p = computeTransform(updt_p, icp_transform);                           // aplicar transformação nos pontos temp
-        cumulative += icp_transform;
-        //std::cout << "error: \t" << "\n";
-        //CORR = FindCorrenpondences_PtP(updt_p,transformed_points);                
-        err = getError(updt_p, transformed_points, CORR);
-        diff = previous_err - err;
-        previous_err = err;
-        std::cout << "iteracao atual   : \t"            <<  i                       << "\t";
-        std::cout << "diff error: \t"                   <<  diff                    << "\t";
-        std::cout << "Transformacao esperada: \t"       <<  true_transform          << "\t";
-        std::cout << "Transformacao atual   : \t"       <<  icp_transform(0,0)      << " "  << icp_transform(0,1) << " " << cumulative(0,2) << "\n";
-        if(err < 1e-15){
-            std::cout << "iteration (out): \t" <<  i << "\n";
-            break;
-        }
+//         //cumulative += icp_transform;
+//         updt_p = computeTransform(updt_p, icp_transform);                           // aplicar transformação nos pontos temp
+//         cumulative += icp_transform;
+//         //std::cout << "error: \t" << "\n";
+//         //CORR = FindCorrenpondences_PtP(updt_p,transformed_points);                
+//         err = getError(updt_p, transformed_points, CORR);
+//         diff = previous_err - err;
+//         previous_err = err;
+//         std::cout << "iteracao atual   : \t"            <<  i                       << "\t";
+//         std::cout << "diff error: \t"                   <<  diff                    << "\t";
+//         std::cout << "Transformacao esperada: \t"       <<  true_transform          << "\t";
+//         std::cout << "Transformacao atual   : \t"       <<  icp_transform(0,0)      << " "  << icp_transform(0,1) << " " << cumulative(0,2) << "\n";
+//         if(err < 1e-15){
+//             std::cout << "iteration (out): \t" <<  i << "\n";
+//             break;
+//         }
 
-        //std::cout << "Transformation [i=" << i << "]:\t" << icp_transform << std::endl;
-    }
+//         //std::cout << "Transformation [i=" << i << "]:\t" << icp_transform << std::endl;
+//     }
 
-    final_transform << 0, 0, cumulative(0,2);
-    //final_transform << cumulative;
+//     final_transform << 0, 0, cumulative(0,2);
+//     //final_transform << cumulative;
 
-    rot_points = computeTransform(source_points, final_transform);
+//     rot_points = computeTransform(source_points, final_transform);
 
-    std::cout << "ROT AUX:[ "<< final_transform(0,2) << " ] \n" << rot_points << "\n";
+//     std::cout << "ROT AUX:[ "<< final_transform(0,2) << " ] \n" << rot_points << "\n";
 
 
-    final_transform.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(rot_points);
+//     final_transform.block<1,2>(0,0) = CenterOfMass(transformed_points) - CenterOfMass(rot_points);
 
-    std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
-    std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
-    std::cout << "Translation FINAL ICP:\n"             << final_transform                          << std::endl;
+//     std::cout << "Centroid Target:\n"                   << CenterOfMass(transformed_points)         << std::endl;
+//     std::cout << "Centroid TEMP:\n"                     << CenterOfMass(rot_points)                 << std::endl;
+//     std::cout << "Translation FINAL ICP:\n"             << final_transform                          << std::endl;
 
-    rot_points = computeTransform(source_points, final_transform);
+//     rot_points = computeTransform(source_points, final_transform);
 
-    //std::cout << "ROT AUX (2): \n"      << rot_points             << "\n";
+//     //std::cout << "ROT AUX (2): \n"      << rot_points             << "\n";
 
-    //std::cout << "origin: \n"           << source_points          << "\n";
-    //std::cout << "target: \n"           << transformed_points     << "\n";
-    //std::cout << "output: \n"           << updt_p                 << "\n";
-    //std::cout << "target: \n"           << transformed_points << "\n";
-    return 0;
-}
+//     //std::cout << "origin: \n"           << source_points          << "\n";
+//     //std::cout << "target: \n"           << transformed_points     << "\n";
+//     //std::cout << "output: \n"           << updt_p                 << "\n";
+//     //std::cout << "target: \n"           << transformed_points << "\n";
+//     return 0;
+// }
 
-Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> updated_points_final;
+Eigen::Matrix<double, TEST_SIZE, TEST_DIMENSION> updated_points_final, it1, it2, it3, it5;
 
 Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> source_points, 
                                             Eigen::Matrix<double, TEST_SIZE , TEST_DIMENSION> target_points        ){
@@ -782,7 +794,7 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     Eigen::Matrix<double, 3, 3>         HOM;
     Eigen::Matrix<double, 1, 3>         prev_cummulative;
     double                              err = 0., n_err = 0., diff = 0., previous_err = 0.;
-
+    double                              error[1];
     // INICIALIZAÇAO
     cumulative.setZero();                               // ZEROS   
     transf.setZero();                                   // ZEROS
@@ -803,10 +815,11 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         
         //n_err = getError(updt_p, target_points, CORR);
         
-        
-        icp_transform   = ICP(updt_p, target_points, 100, 0.005);
+        //auto started = std::chrono::high_resolution_clock::now();
+        icp_transform   = ICP(updt_p, target_points, 100, error);
+        //auto done = std::chrono::high_resolution_clock::now();
         updt_p          = computeTransform(updt_p, icp_transform);                               // update
-
+        
         cumulative += icp_transform;
 
         if(i > 6 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-14){
@@ -816,6 +829,13 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         }
         prev_cummulative = cumulative;
 
+        if(i == 1){
+            it1 = updt_p;
+        }else if( i == 2){
+            it2 = updt_p;
+        }else if ( i == 5){
+            it5 = updt_p;
+        }
 
         //cout << "It: " << i << "\tT(i): " <<  icp_transform(0,0) << " " << icp_transform(0,1) << " " << icp_transform(0,2) << "\t";
         //cout << "Soma T(i): " <<  cumulative(0, 2) << "\n";
@@ -826,11 +846,12 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
 
         //std::cout << "CORRESPONDENCES: \t" << CORR << "\n";
         //std::cout << "errorss: \t" << n_err << "\t" << err << "\n";
-        CORR                = FindCorrenpondences_PtP(updt_p, target_points);
-        err                 = getError(updt_p, target_points, CORR);
+        //CORR                = FindCorrenpondences_PtP(updt_p, target_points);
+        err                 = *error;
         diff                = previous_err - err;
         previous_err        = err;
         std::cout << "error: \t" << err << "\n";
+        //std::cout << "time Comp-it: \t" << std::chrono::duration_cast<std::chrono::milliseconds>(done-started).count() << "\n";
         if(i > 36 && err <= 0.0005){
             std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (out): \t" <<  i << "\n";
@@ -894,8 +915,8 @@ int main(){
     final.setZero();
     position.setZero();
     ofstream outFile("./data/PC_ICP_output8.txt");
-    ofstream outPos("./data/OutPositions2.txt");
-    int interval = 8;                                              // comparar com frames diferentes para detectar movimento
+    ofstream outPos("./data/OutPositions3.txt");
+    int interval = 8, total_frames =0;                                              // comparar com frames diferentes para detectar movimento
     double ang_treshold = 0.07;                                    
 
     for (int i = 0; i < size_samples - interval; i += interval){
@@ -909,10 +930,9 @@ int main(){
         //Sleep(2000);
         //std::cout << f_scans[i] << std::endl;
 
-        time(&start);
-        ios_base::sync_with_stdio(false);
+        auto started = std::chrono::high_resolution_clock::now();
         trans_steps     = main_ICP(org, tgt);                                               // 
-        time(&end);
+        auto done = std::chrono::high_resolution_clock::now();
 
         // CENTER OF MASS CHECK
         centroid_a      = CenterOfMass(org);
@@ -923,19 +943,18 @@ int main(){
         centroid_c      = CenterOfMass(temp);                                   // New center of mass of the rotated frame
 
 
-        final.block<1,2>(0,0)  =   (centroid_b - centroid_c) ;
+        final.block<1,2>(0,0)  =   (centroid_b - centroid_a) ;
 
-        time_t time_taken = double(end - start);
         //cout << "MASS ORG: "        << centroid_a                       << "\n";
         //cout << "MASS TTT: "        << centroid_c                       << "\n";
-        cout    << "TIME: "                << time_taken << std::setprecision(5)        << "\n";
+        cout    << "TIME: "                << std::chrono::duration_cast<std::chrono::milliseconds>(done-started).count()        << "\n";
         cout    << "FRAME: "               << i                                         << "\n";
 
         //trans_steps.block<1,2>(0,0) += final.block<1,2>(0,0) ;
 
-        if(trans_steps(0,2) > ang_treshold){
-            trans_steps.block<1,2>(0,0) = final.block<1,2>(0,0);
-        }
+        // if(trans_steps(0,2) > ang_treshold){
+        //     trans_steps.block<1,2>(0,0) = final.block<1,2>(0,0);
+        // }
 
         std::cout   << trans_steps << std::endl;
         outFile     << trans_steps << std::endl;
@@ -947,17 +966,22 @@ int main(){
         outPos << position << endl;
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 11){
+        if(i == interval * 20){
             auxFrame1   = org;
             auxFrame2   = tgt;
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
             auxFrame3   = computeTransform(org, trans_steps);
+            //auxFrame3   = it2;
             break;
         }
 
+        total_frames++;
     }
     outPos.close();
     outFile.close();
+
+    cout << "Total frames processed: " << total_frames << endl;
+
 
     // GENERATE FILE TO CHECK IF CONVERSION TO 2D IS OK
     ofstream cartesian_conv("./data/CheckConversionToCartesian.txt");

@@ -132,6 +132,6 @@ plt.legend()
 
 
 
-plt.figure(2)
-plt.plot(axisX, ranges)
+# plt.figure(2)
+# plt.plot(axisX, ranges)
 plt.show()
