@@ -179,7 +179,7 @@ x_coords = []
 y_coords = []
 
 
-startFRAME = 1500
+startFRAME = 1500                   # 26,6 seg
 endFRAME = 2300
 capture.set(cv2.CAP_PROP_POS_FRAMES, startFRAME)
 

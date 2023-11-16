@@ -53,8 +53,8 @@ xx = xx[1:]
 yy = yy[1:]
 
 plt.figure(1)
-plt.plot(X, Y, '.')
-plt.plot(yy, - xx, '.')                     # the trasformation to same coodinates is only here (ztheta(PI/2)  90°)
+plt.plot(X, Y)
+plt.plot(yy, - xx )                     # the trasformation to same coodinates is only here (ztheta(PI/2)  90°)
 
 
 ICP_Points["difX"] =  yy.sub(X, axis=0)
@@ -68,11 +68,27 @@ xdiff = xdiff[1:]
 ydiff = ydiff[1:]
 
 plt.figure(2)
-plt.title("Reamostragem da estimativa da componente angular pela odometria visual")
+plt.title("Reamostragem da estimativa da componente angular \n pela odometria visual")
 plt.plot(axisSample, sigTheta)
 plt.plot(axisX*30, THETA, '.')
 plt.figure(3)
 plt.title("Erro em radianos da estimativa do algoritmo ICP \n em relação à odometria visual")
 plt.plot(axisX, diffTheta)
+
+
+plt.figure(4)
+plt.title("Erro em x [cm]")
+plt.plot(axisX, xdiff)
+
+plt.figure(5)
+plt.title("Erro em y [cm]")
+plt.plot(axisX, ydiff, '.')
+
+plt.figure(6)
+plt.title("Erro em relação aos parâmetros x e y [cm]")
+plt.boxplot([xdiff, ydiff], labels=["Erro em x [cm]", "Erro em y [cm]"])
+
+
+
 
 plt.show()

@@ -26,7 +26,7 @@ for i in range(0,200):
     all_positions_y.append(0.)
 #print(all_2D_transformations)
 
-with open('./data/PC_ICP_output7.txt', mode = 'r') as f:
+with open('./data/PC_ICP_output9.txt', mode = 'r') as f:
     ctt_line=0
     for line in f:
         ctt_item =0

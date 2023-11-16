@@ -974,20 +974,20 @@ int main(){
         std::cout   << trans_steps << std::endl;
         outFile     << trans_steps << std::endl;
 
-        // t_aux.setZero();
-        // t_aux.block<1,2>(0,0) = trans_steps.block<1,2>(0,0);
+        t_aux.setZero();
+        t_aux.block<1,2>(0,0) = trans_steps.block<1,2>(0,0);
 
-        position = computeTransform (position, trans_steps);
+        position = computeTransform (position, t_aux);
         outPos << position << endl;
 
         // ONLY FOR TESTING DATA  (BASIC THINGS)
-        if(i == interval * 20){
+        if(i == interval * 22){
             auxFrame1   = org;
             auxFrame2   = tgt;
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
             auxFrame3   = computeTransform(org, trans_steps);
             //auxFrame3   = it2;
-            //break;
+            break;
         }
 
         total_frames++;
