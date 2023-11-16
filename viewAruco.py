@@ -87,7 +87,8 @@ plt.plot(axisX, ydiff, '.')
 plt.figure(6)
 plt.title("Erro em relação aos parâmetros x e y [cm]")
 plt.boxplot([xdiff, ydiff], labels=["Erro em x [cm]", "Erro em y [cm]"])
-
+plt.figure(7)
+plt.boxplot(diffTheta, labels=["Erro angular em radianos [rad]"])
 
 
 
