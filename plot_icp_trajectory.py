@@ -26,7 +26,7 @@ for i in range(0,200):
     all_positions_y.append(0.)
 #print(all_2D_transformations)
 
-with open('./data/PC_ICP_output8.txt', mode = 'r') as f:
+with open('./data/PC_ICP_output7.txt', mode = 'r') as f:
     ctt_line=0
     for line in f:
         ctt_item =0
@@ -69,8 +69,8 @@ for i in range(1,200):
     sy = np.sqrt(pow(transformationM[0][1], 2) + pow(transformationM[1][1], 2))
     all_positions_x[i] =  (all_positions_x[i-1] * np.cos(all_2D_transformations[i-1][2]) - all_positions_y[i-1] * np.sin(all_2D_transformations[i-1][2])) + all_2D_transformations[i-1][0] 
     all_positions_y[i] =  (all_positions_x[i-1] * np.sin(all_2D_transformations[i-1][2]) + all_positions_y[i-1] * np.cos(all_2D_transformations[i-1][2])) + all_2D_transformations[i-1][1] 
-    all_positions_x[i] =  all_positions_x[i-1] + all_2D_transformations[i-1][0]
-    all_positions_y[i] =  all_positions_y[i-1] + all_2D_transformations[i-1][1]
+    #all_positions_x[i] =  all_positions_x[i-1] + all_2D_transformations[i-1][0]
+    #all_positions_y[i] =  all_positions_y[i-1] + all_2D_transformations[i-1][1]
 
 Points2d = pd.read_table("./data/OutPositions2.txt", sep = " ")
 #print(Points2d.head())

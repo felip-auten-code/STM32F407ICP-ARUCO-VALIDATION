@@ -84,6 +84,12 @@ using namespace Eigen;
 using namespace std;
 
 
+int size_samples = 200;
+double** f_scans= (double**)malloc(size_samples * sizeof(double*));
+double* errorVec = (double*)malloc(size_samples * 20 * sizeof(double));
+int idxErrorVec =0;
+
+
 Eigen::Matrix<double, 3, 3> getTransformation(double dx, double dy, double theta)
 {
     Matrix3d T;
@@ -218,7 +224,7 @@ Eigen::Matrix<int, Dynamic, 2> FindCorrenpondences_PtP(Eigen::Matrix<double, Dyn
     double acceptance_level = 15.5, accept_dist = 0.001;
     double minDIST = 9999, dist = 9999;
     int closestPointIndex = -1;
-    for (int i =0; i < PCL_o.rows(); i+=3){
+    for (int i =0; i < PCL_o.rows(); i+=6){
         // para cada ponto no conjunto Origem encontrar qual o segmento de linha cuja a distancia euclidiana seja minima
         // alinhar para esquerda
         // correspondencia do ponto
@@ -483,7 +489,7 @@ Eigen::Matrix<double,1,3> ICP(  Eigen::Matrix<double, Dynamic, 2> org,
 
     err = getError(org, tgt, correspondences); 
     *error = err;
-    std::cout << "error it: \t" << err << "\n";
+    //std::cout << "error it: \t" << err << "\n";
     //std::cout << "MASS B: \t" << centroid_q << "\n";
     //std::cout << "ROT: \n" << tt.block<2,2>(0,0) << "\n";
     //std::cout << "TRNAF: \n" << tt.block<2,2>(0,0) << "\t" << out(0,2) << "\n";
@@ -825,6 +831,10 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         if(i > 6 && cumulative(0,2) - prev_cummulative(0, 2) <= 1e-14){
             //std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (outByAngleConversion): \t" <<  i << "\n";
+            errorVec[idxErrorVec] = err;
+            idxErrorVec++;
+            errorVec[idxErrorVec] = -9999;
+            idxErrorVec++;
             break;
         }
         prev_cummulative = cumulative;
@@ -850,8 +860,11 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
         err                 = *error;
         diff                = previous_err - err;
         previous_err        = err;
-        std::cout << "error: \t" << err << "\n";
+        //std::cout << "error: \t" << err << "\n";
         //std::cout << "time Comp-it: \t" << std::chrono::duration_cast<std::chrono::milliseconds>(done-started).count() << "\n";
+
+        errorVec[idxErrorVec] = err;
+        idxErrorVec++;
         if(i > 36 && err <= 0.0005){
             std::cout << "error: \t" <<  err << "\n";
             std::cout << "iteration (out): \t" <<  i << "\n";
@@ -884,14 +897,13 @@ Eigen::Matrix<double, 1, 3> main_ICP(       Eigen::Matrix<double, TEST_SIZE , TE
     return final_transform;
 }
 
-int size_samples = 200;
-double** f_scans= (double**)malloc(size_samples * sizeof(double*));
 
 Eigen::MatrixXd update_position( Eigen::MatrixXd pos, Eigen::Matrix<double, 1, 3> trans ){
     Eigen::MatrixXd n_pos;
     n_pos = computeTransformPoint(pos, trans);
     return n_pos;
 }
+
 
 
 int main(){
@@ -914,10 +926,13 @@ int main(){
     
     final.setZero();
     position.setZero();
-    ofstream outFile("./data/PC_ICP_output8.txt");
-    ofstream outPos("./data/OutPositions3.txt");
+    ofstream outFile("./data/PC_ICP_output9.txt");                                  // OUT FILE
+    ofstream outPos("./data/OutPositions4.txt");                                    // OUT FILE
     int interval = 8, total_frames =0;                                              // comparar com frames diferentes para detectar movimento
     double ang_treshold = 0.07;                                    
+
+
+
 
     for (int i = 0; i < size_samples - interval; i += interval){
 
@@ -972,7 +987,7 @@ int main(){
             CORR_aux    = FindCorrenpondences_PtP(org, tgt);
             auxFrame3   = computeTransform(org, trans_steps);
             //auxFrame3   = it2;
-            break;
+            //break;
         }
 
         total_frames++;
@@ -1010,8 +1025,14 @@ int main(){
     ofstream check_compare4("./data/CorrespondencesInitial.txt");
     check_compare4 << CORR_aux;
     check_compare4.close();    
-    // PARA PLOTAR TRAJETORIA
-    
+    // PARA PLOTAR Erro RMS das iterações
+    ofstream errorOut("./data/errorIterations.txt");
+    for(int i =0; i< size_samples* 20; i++){
+        errorOut << errorVec[i] << ',';
+    }
+    errorOut.close();
+
+    print_vec(errorVec, 200* 20);
 
 }
 

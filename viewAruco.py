@@ -68,9 +68,11 @@ xdiff = xdiff[1:]
 ydiff = ydiff[1:]
 
 plt.figure(2)
+plt.title("Reamostragem da estimativa da componente angular pela odometria visual")
 plt.plot(axisSample, sigTheta)
 plt.plot(axisX*30, THETA, '.')
 plt.figure(3)
+plt.title("Erro em radianos da estimativa do algoritmo ICP \n em relação à odometria visual")
 plt.plot(axisX, diffTheta)
 
 plt.show()
