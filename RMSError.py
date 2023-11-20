@@ -28,7 +28,16 @@ for i in range (0, len(allerrors)):
 print(tabLineErrors)
 
 fig1 = plt.figure(1)
-plt.plot(range(0, len(tabLineErrors[7]), 1), tabLineErrors[7])
+## Explore iterations --> 20, 
+call = 16
+interval =3
+
+plt.plot(range(0, len(tabLineErrors[call]), 1), tabLineErrors[call], 'x')
+plt.plot(range(0, len(tabLineErrors[call]), 1), tabLineErrors[call], '--')
+s = str(call*interval)
+s1 = str(call*interval + interval)
+title = "Chamada (" + s + ", " + s1 + ") ao algoritmo ICP"
+plt.title( title )
 plt.xlabel("Iterações")
 plt.ylabel("Erro RMSE [cm]")
 plt.show()

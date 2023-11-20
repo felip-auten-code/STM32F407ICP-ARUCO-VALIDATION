@@ -7,12 +7,12 @@ import io
 
 
  # Alwas edit witch COM PORT IS BEEING USED BY THE TTL(UART/USB) Converter
-ser = serial.Serial(port="COM6", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 100)
+ser = serial.Serial(port="COM3", baudrate=115200, bytesize=8, stopbits=serial.STOPBITS_ONE, timeout = 100)
 #sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
-
+interval = 3 
 data_send =[]
 
-with open('./data/scanVID001.txt', mode = 'r') as f:
+with open('./data/scanLASTEST01.txt', mode = 'r') as f:
     ctt=0
     for line in f:
         if(line[0] == '/'):
@@ -23,16 +23,21 @@ with open('./data/scanVID001.txt', mode = 'r') as f:
             #data_send.append(line)
             #time.sleep(10)
             #print("open")
-        data_send.append(line)
+        if(ctt % interval == 0):    
+            data_send.append(line)
         ctt+=1
 
 
 list1 = [val for val in data_send for _ in (0, 1)]
 
+#list1 = [val for val in data_send]
+#print(list1)
 ctt=0
 #input("Press enter to start")
-for i in list1[1:]:
-    if(ctt % 2 == 0 ):
+start_frame_to_send = 0
+
+for i in list1[start_frame_to_send * 2+1 :]:
+    if(ctt % (2) == 0 ):
         print("Press any key to send the 2 sequential Scans")
         input("Press Enter to continue")    #wait until any key is pressed
         
@@ -41,7 +46,7 @@ for i in list1[1:]:
             
     ctt+=1
     
-    if(ctt%2==0):
+    if(ctt % 2 == 0):
         wait_till_return = 1
         #input('wait till processed by MICRO')
         print('wait till processed by MICRO')

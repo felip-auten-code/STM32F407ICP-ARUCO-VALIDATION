@@ -27,10 +27,10 @@ with open('./data/scanLASTEST01.txt', mode='r') as f:
                 num += str(i)
             elif( str(i) == ',' ):
                 #print(num)
-                if(ctt_line == 8*8):
+                if(ctt_line == 3*0):
                     scan[idx_scan] = float(num)
                     idx_scan+=1
-                elif(ctt_line == 8*8+8):
+                elif(ctt_line == 3*8):
                     scan_end[idx_scan_end] = float(num)
                     idx_scan_end+=1                
                 num=""
@@ -97,20 +97,20 @@ def show_down_sampling(scan, mode):
 
 if __name__ == '__main__':
 
-    plt.style.use('seaborn')
+    #plt.style.use('seaborn')
     axis_x = np.arange(0,360,1) 
     print(len(scan))
     x, y = convert_scan_to_cartesian(scan)
     fig, ax = plt.subplots(figsize = (10, 7))
-    ax.scatter(x, y, label='Escaneamento inicial $(k=0)$', s=10)
-    ax.scatter(mean(x), mean(y))
+    ax.scatter(x, y, label='Escaneamento inicial $(k=0, t=0s)$', s=10)
+    #ax.scatter(mean(x), mean(y))
     x1, y1 = convert_scan_to_cartesian(scan_end)
-    ax.scatter(x1,y1, color='tab:orange', label='Escaneamento final $(k=153)$', s=10)
+    #ax.scatter(x1,y1, color='tab:orange', label='Escaneamento $(k=153)$', s=10)
 
-    ax.scatter(mean(x1), mean(y1))
+    #ax.scatter(mean(x1), mean(y1))
 
 
-    ax.set_title('POINT CLOUD DATA')
+    #ax.set_title('POINT CLOUD DATA')
     ax.set_ylabel('Eixo Y [mm]')
     ax.set_xlabel('Eixo X [mm]')
 
@@ -125,9 +125,11 @@ if __name__ == '__main__':
     ax2 = plt.axes()
     for i in range(0, len(x)):
         ax2.arrow(0,0, x[i] , y[i])
-        ax2.arrow(0,0, x1[i], y1[i])
+        #ax2.arrow(0,0, x1[i], y1[i])
     plt.xlim(-350, 300)
     plt.ylim(-350, 300)
+    plt.xlabel("Eixo x do sensor LiDAR")
+    plt.ylabel("Eixo y do sensor LiDAR")
     
     plt.figure(4)
     plt.stem(axis_x,scan_end )

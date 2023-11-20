@@ -1,0 +1,16 @@
+
+        frames processados              time taken [ms]             tipo de movimento
+MICRO   (0, 3)                          21168                       
+PC      (0, 3)                          149                         
+
+MICRO   (3, 6)                          21166                           
+PC      (3, 6)                          151                         
+
+MICRO   (48, 51)                        21171
+PC      (48, 51)                        151                             
+
+MICRO   (90, 93)                        55996
+PC      (90, 93)                        415                                 
+
+MICRO   (177, 180)                      53513                     
+PC      (177, 180)                      449    

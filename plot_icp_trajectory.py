@@ -26,14 +26,16 @@ for i in range(0,200):
     all_positions_y.append(0.)
 #print(all_2D_transformations)
 
-with open('./data/PC_ICP_output9.txt', mode = 'r') as f:
+Data = pd.read_csv("./data/TvecsARUCO.csv")                                 # ARUCO DATA
+
+with open('./data/PC_ICP_output10.txt', mode = 'r') as f:
     ctt_line=0
     for line in f:
         ctt_item =0
         for item in line.split(' '):
             #item.remove(' ')
             item.replace(" ", "")
-            if(item != ''):
+            if(item != '' and item.isdigit() ):
                 value = float(item)
                 #print( value, '\t', end="")
                 all_2D_transformations[ctt_line][ctt_item] = value
@@ -67,15 +69,25 @@ for i in range(1,200):
     transformationM = getTransformation(all_2D_transformations[i-1])
     sx = np.sqrt(pow(transformationM[0][0], 2) + pow(transformationM[1][0], 2))
     sy = np.sqrt(pow(transformationM[0][1], 2) + pow(transformationM[1][1], 2))
-    all_positions_x[i] =  (all_positions_x[i-1] * np.cos(all_2D_transformations[i-1][2]) - all_positions_y[i-1] * np.sin(all_2D_transformations[i-1][2])) + all_2D_transformations[i-1][0] 
+    all_positions_x[i] =  (all_positions_x[i-1] * np.cos(all_2D_transformations[i-1][2]) - all_positions_y[i-1] * np.sin(all_2D_transformations[i-1][2])) + all_2D_transformations[i-1][0]  
     all_positions_y[i] =  (all_positions_x[i-1] * np.sin(all_2D_transformations[i-1][2]) + all_positions_y[i-1] * np.cos(all_2D_transformations[i-1][2])) + all_2D_transformations[i-1][1] 
     #all_positions_x[i] =  all_positions_x[i-1] + all_2D_transformations[i-1][0]
     #all_positions_y[i] =  all_positions_y[i-1] + all_2D_transformations[i-1][1]
 
-Points2d = pd.read_table("./data/OutPositions2.txt", sep = " ")
+Points2d = pd.read_table("./data/OutPositions5.txt", sep = " ")
 #print(Points2d.head())
 
-plt.plot(Points2d["x"], Points2d["y"], '.')
-plt.plot(all_positions_x, all_positions_y, '.')
+maskX = np.full((1,len(np.array(Points2d["x"]))), -31.4)
+maskY = np.full((1,len(np.array(Points2d["y"]))), 5.1)
 
+print(maskX)
+outX = Points2d["x"].add(maskX[0])
+outY = Points2d["y"].add(maskY[0])
+
+plt.plot(Points2d["x"], Points2d["y"], '-')
+#plt.plot(all_positions_x, all_positions_y)
+plt.plot(-Data["ty"], Data["tx"],'-')
+
+plt.xlabel("x [cm]")
+plt.ylabel("y [cm]")
 plt.show()

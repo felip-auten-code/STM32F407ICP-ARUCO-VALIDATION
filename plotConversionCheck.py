@@ -125,8 +125,10 @@ for i in range(0, len(xT)):
 plt.figure(1)
 plt.plot(x, y, '.', label = "Frame Anterior")
 plt.plot(x1, y1, '.', label = "Frame Atual")
-plt.plot(xT, yT, '.', label = "Após transformação aplicada pelo ICP")
-plt.plot(xU, yU, '.', label = "Após transformação aplicada pelo ICP 2")
+#plt.plot(xT, yT, '.', label = "Após transformação aplicada pelo ICP")
+plt.plot(xU, yU, '.', label = "Frame anterior após o a linhamento final \n aplicado pelo ICP implementado")
+plt.xlabel("Eixo x do sensor LiDAR [cm]")
+plt.ylabel("Eixo y do sensor LiDAR [cm]")
 plt.legend()
 
 
